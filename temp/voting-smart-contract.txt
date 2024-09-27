@@ -1,0 +1,70 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract VotingSystem {
+    struct Ballot {
+        string name;
+        string[] options;
+        mapping(string => uint256) votes;
+        mapping(address => bool) hasVoted;
+        uint256 startTime;
+        uint256 endTime;
+    }
+
+    mapping(uint256 => Ballot) public ballots;
+    uint256 public ballotCount;
+
+    event BallotCreated(uint256 ballotId, string name, string[] options, uint256 startTime, uint256 endTime);
+    event Voted(uint256 ballotId, address voter, string option);
+
+    function createBallot(string memory _name, string[] memory _options, uint256 _durationInMinutes) public {
+        require(_options.length > 1, "At least two options are required");
+        
+        uint256 ballotId = ballotCount++;
+        Ballot storage newBallot = ballots[ballotId];
+        newBallot.name = _name;
+        newBallot.options = _options;
+        newBallot.startTime = block.timestamp;
+        newBallot.endTime = block.timestamp + (_durationInMinutes * 1 minutes);
+
+        emit BallotCreated(ballotId, _name, _options, newBallot.startTime, newBallot.endTime);
+    }
+
+    function vote(uint256 _ballotId, string memory _option) public {
+        Ballot storage ballot = ballots[_ballotId];
+        require(block.timestamp >= ballot.startTime && block.timestamp < ballot.endTime, "Voting is not active");
+        require(!ballot.hasVoted[msg.sender], "Already voted");
+        require(isValidOption(_ballotId, _option), "Invalid option");
+
+        ballot.votes[_option]++;
+        ballot.hasVoted[msg.sender] = true;
+
+        emit Voted(_ballotId, msg.sender, _option);
+    }
+
+    function isValidOption(uint256 _ballotId, string memory _option) public view returns (bool) {
+        Ballot storage ballot = ballots[_ballotId];
+        for (uint i = 0; i < ballot.options.length; i++) {
+            if (keccak256(abi.encodePacked(ballot.options[i])) == keccak256(abi.encodePacked(_option))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function getBallotOptions(uint256 _ballotId) public view returns (string[] memory) {
+        return ballots[_ballotId].options;
+    }
+
+    function getBallotResults(uint256 _ballotId) public view returns (string[] memory, uint256[] memory) {
+        Ballot storage ballot = ballots[_ballotId];
+        require(block.timestamp >= ballot.endTime, "Voting has not ended");
+
+        uint256[] memory voteCounts = new uint256[](ballot.options.length);
+        for (uint i = 0; i < ballot.options.length; i++) {
+            voteCounts[i] = ballot.votes[ballot.options[i]];
+        }
+
+        return (ballot.options, voteCounts);
+    }
+}

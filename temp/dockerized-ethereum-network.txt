@@ -1,0 +1,77 @@
+# Dockerfile
+FROM ethereum/client-go:latest
+
+RUN apk add --no-cache bash curl
+
+WORKDIR /root
+
+COPY genesis.json .
+COPY start-node.sh .
+
+RUN chmod +x start-node.sh
+
+EXPOSE 8545 30303 30303/udp
+
+ENTRYPOINT ["./start-node.sh"]
+
+# docker-compose.yml
+version: '3'
+services:
+  ethereum-node:
+    build: .
+    ports:
+      - "8545:8545"
+      - "30303:30303"
+      - "30303:30303/udp"
+    volumes:
+      - ./ethereum-data:/root/.ethereum
+    environment:
+      - ADDRESS=0x0000000000000000000000000000000000000000
+      - PASSWORD=your-account-password
+
+# start-node.sh
+#!/bin/bash
+set -e
+
+if [ ! -d /root/.ethereum/geth ]; then
+    echo "Initializing genesis block..."
+    geth init /root/genesis.json
+fi
+
+if [ ! -f /root/.ethereum/account ]; then
+    echo "Creating new account..."
+    echo $PASSWORD > /tmp/password
+    ACCOUNT=$(geth account new --password /tmp/password | grep -o '0x[a-fA-F0-9]\+')
+    echo $ACCOUNT > /root/.ethereum/account
+    rm /tmp/password
+else
+    ACCOUNT=$(cat /root/.ethereum/account)
+fi
+
+echo "Starting Ethereum node..."
+exec geth --networkid 15 \
+    --http --http.addr 0.0.0.0 --http.port 8545 --http.corsdomain "*" \
+    --mine --miner.threads 1 \
+    --miner.etherbase $ACCOUNT \
+    --nodiscover \
+    --allow-insecure-unlock \
+    --unlock $ACCOUNT \
+    --password <(echo $PASSWORD)
+
+# genesis.json
+{
+  "config": {
+    "chainId": 15,
+    "homesteadBlock": 0,
+    "eip150Block": 0,
+    "eip155Block": 0,
+    "eip158Block": 0,
+    "byzantiumBlock": 0,
+    "constantinopleBlock": 0,
+    "petersburgBlock": 0,
+    "istanbulBlock": 0
+  },
+  "difficulty": "0x400",
+  "gasLimit": "0x8000000",
+  "alloc": {}
+}
