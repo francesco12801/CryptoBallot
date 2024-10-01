@@ -24,5 +24,5 @@ Create .env file and the following constant variables:
 - DB_PASSWORD=""
 - DB_HOST="localhost"
 - DB_PORT="5432"
-Then add py script to create tables. 
+Then run py script to create tables. 
 
