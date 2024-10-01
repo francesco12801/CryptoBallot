@@ -18,7 +18,7 @@ Pratical DB:
 
 
 **How to use .env files**
-Create .env file and the following constant variables: 
+Create .env file and the following constant variables, fill them with personal data related to PostGre: 
 - DB_NAME=""
 - DB_USER=""
 - DB_PASSWORD=""
