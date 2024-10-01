@@ -5,6 +5,15 @@ The concept of integrating blockchain technology into voting systems represents 
 Database creation: 
 1. **User table**: [ID, NAME, SURNAME, EMAIL, HASH_PASS, WALLET]  
 2. **Friends**: [ID, FRIENDS_ID]
-2. **Ballot table**: [ID, NAME, DESCRIPTION, ID_CRETOR (user_id), NAME_CREATOR, SURNAME_CREATOR, START_DATE, END_DATE]  
+3. **Ballot table**: [ID, NAME, DESCRIPTION, ID_CRETOR (user_id), NAME_CREATOR, SURNAME_CREATOR, START_DATE, END_DATE]  
 4. **Ballot voters**: [ID_BALLOT, ID_VOTER (user_id)]
-3. **Bookmark**: [ID_USER, ID_BALLOT]
+5. **Bookmark**: [ID_USER, ID_BALLOT]
+
+Pratical DB: 
+1. **User**: [ID (Primary Key), NAME, SURNAME, EMAIL (Unique), HASH_PASS, WALLET]
+2. **Friends**: [USER_ID (Foreign Key), FRIEND_ID (Foreign Key)]
+3. **Ballot**: [ID (Primary Key), NAME, DESCRIPTION, ID_CREATOR (Foreign Key to User), CREATED_AT, END_DATE]
+4. **BallotVoters**: [ID_BALLOT (Foreign Key to Ballot), ID_VOTER (Foreign Key to User), CREATED_AT]
+5. **Bookmark**: [ID_USER (Foreign Key to User), ID_BALLOT (Foreign Key to Ballot)]
+
+
