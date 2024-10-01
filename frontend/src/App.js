@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
+const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
 
 function HomePage() {
   return <h2>Home Page</h2>;
@@ -11,9 +12,29 @@ function LoginPage() {
   const [password, setPassword] = useState('');
 
   const handleLogin = async (e) => {
-    //TODO: Implement login logic
     e.preventDefault();
-    console.log('Login:');
+    // TEMP: Fetch from the backend
+    try {
+      console.log('Attempting to fetch from:', `${backendUrl}`);
+      const response = await fetch(`${backendUrl}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+  
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      console.log('Data received:', data);
+    } catch (error) {
+      console.error('Fetch error:', error.message);
+    }
   };
 
   return (
