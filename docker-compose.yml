@@ -14,7 +14,7 @@ services:
     ports:
       - "4000:4000"
     environment:
-      - DATABASE_URL=postgres://postgres:password@db:5400/mydatabase
+      - DATABASE_URL=postgres://postgres:password@db:5432/userdatabase
     depends_on:
       - db
 
@@ -23,9 +23,9 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: mydatabase
+      POSTGRES_DB: userdatabase
     ports:
-      - "5400:5400"
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
