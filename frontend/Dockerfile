@@ -1,4 +1,4 @@
-# Use the official Node.js image as a base image
+# Use the official Node.js image as a base image for building the frontend
 FROM node:14 AS frontend
 
 # Set the working directory inside the container
@@ -19,10 +19,16 @@ RUN npm run build
 # Use an official Nginx image to serve the React app
 FROM nginx:alpine
 
-# Copy the build folder to Nginx's default directory
+# Remove the default Nginx configuration
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copy a custom Nginx configuration file to the container
+COPY nginx.conf /etc/nginx/conf.d
+
+# Copy the build folder from the previous stage to Nginx's default serving directory
 COPY --from=frontend /app/build /usr/share/nginx/html
 
-# Expose port 80
+# Expose port 80 to allow external access
 EXPOSE 80
 
 # Start Nginx when the container launches
