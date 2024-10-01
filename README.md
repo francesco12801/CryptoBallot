@@ -17,3 +17,12 @@ Pratical DB:
 5. **Bookmark**: [ID_USER (Foreign Key to User), ID_BALLOT (Foreign Key to Ballot)]
 
 
+**How to use .env files**
+Create .env file and the following constant variables: 
+- DB_NAME=""
+- DB_USER=""
+- DB_PASSWORD=""
+- DB_HOST="localhost"
+- DB_PORT="5432"
+Then add py script to create tables. 
+
