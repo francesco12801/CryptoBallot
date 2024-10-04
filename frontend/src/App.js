@@ -31,7 +31,7 @@ const Home = () => {
   return (
     <div className="container">
       <h1>Hi, {userName}!</h1>
-      <h2>Almost Expired Ballots</h2>
+      <h2>Almost expired ballots</h2>
 
       <div className="row">
         {ballots.map((ballot) => (
@@ -39,7 +39,7 @@ const Home = () => {
             <div className="card mb-4 shadow-sm">
               <div className="card-body">
                 <h5 className="card-title">{ballot.title}</h5>
-                <p className="card-text">Expires in {ballot.expiresIn}</p>
+                <p className="card-text">Ends in {ballot.expiresIn}</p>
                 <button className="btn btn-primary">
                   <Link to={`/ballot/${ballot.id}`} className="text-white">
                     Vote Now
@@ -50,6 +50,26 @@ const Home = () => {
           </div>
         ))}
       </div>
+
+      <h2>All available ballots</h2>
+      <div className="row">
+        {ballots.map((ballot) => (
+          <div className="col-md-4" key={ballot.id}>
+            <div className="card mb-4 shadow-sm">
+              <div className="card-body">
+                <h5 className="card-title">{ballot.title}</h5>
+                <p className="card-text">Ends in {ballot.expiresIn}</p>
+                <button className="btn btn-primary">
+                  <Link to={`/ballot/${ballot.id}`} className="text-white">
+                    Vote Now
+                  </Link>
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
     </div>
   );
 };
@@ -121,6 +141,51 @@ const Ballot = () => {
       <h2>{ballot.title}</h2>
       <p>Expires in {ballot.expiresIn}</p>
       {/* Add more ballot details here */}
+    </div>
+  );
+};
+
+// About Us component
+const AboutUs = () => {
+  const developers = [
+    {
+      name: 'Marco Natale',
+      description: 'A passionate full-stack developer with expertise in building scalable web applications and a focus on backend services.',
+      image: 'https://via.placeholder.com/150', // Placeholder for Marco's image
+    },
+    {
+      name: 'Francesco Tinessa',
+      description: 'Front-end developer specializing in creating sleek and responsive user interfaces with modern web technologies.',
+      image: 'https://via.placeholder.com/150', // Placeholder for Francesco's image
+    },
+    {
+      name: 'Davide Fortunato',
+      description: 'Backend architect, focused on designing robust and high-performance systems for complex data-driven applications.',
+      image: 'https://via.placeholder.com/150', // Placeholder for Davide's image
+    },
+    {
+      name: 'Giuseppe Macri',
+      description: 'Full-stack engineer with a passion for blockchain technologies and decentralized systems development.',
+      image: 'https://via.placeholder.com/150', // Placeholder for Giuseppe's image
+    },
+  ];
+
+  return (
+    <div className="container">
+      <h1>About Us</h1>
+      <div className="row">
+        {developers.map((dev, index) => (
+          <div className="col-md-3" key={index}>
+            <div className="card mb-4 shadow-sm">
+              <img src={dev.image} className="card-img-top" alt={`${dev.name}`} />
+              <div className="card-body">
+                <h5 className="card-title">{dev.name}</h5>
+                <p className="card-text">{dev.description}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
@@ -215,6 +280,7 @@ const App = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/ballot/:id" element={<Ballot />} />
+        <Route path="/about" element={<AboutUs />} />
       </Routes>
 
       <footer className="bg-light text-center text-lg-start">
@@ -237,13 +303,10 @@ const App = () => {
                   <Link to="/" className="text-dark">Home</Link>
                 </li>
                 <li>
-                  <Link to="/login" className="text-dark">Login</Link>
-                </li>
-                <li>
-                  <Link to="/register" className="text-dark">Register</Link>
-                </li>
-                <li>
                   <Link to="/contact" className="text-dark">Contact</Link>
+                </li>
+                <li>
+                  <Link to="/about" className="text-dark">About Us</Link>
                 </li>
               </ul>
             </div>
