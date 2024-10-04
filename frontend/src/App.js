@@ -76,8 +76,12 @@ const Home = () => {
 
 // Login component
 const Login = ({ setIsLoggedIn }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   // Simulate login logic
-  const handleLogin = () => {
+  const handleLogin = (e) => {
+    e.preventDefault();
+    // API call to the backend
     fetch(`${backendUrl}/`, {
       method: 'GET',
       headers: {
@@ -93,12 +97,47 @@ const Login = ({ setIsLoggedIn }) => {
       });
     localStorage.setItem('token', 'dummyToken'); // Save token to localStorage
     setIsLoggedIn(true); // Set login state
+    window.location.href = '/';
   };
   
   return (
-    <div>
-      <h2>Login Page</h2>
-      <button onClick={handleLogin}>Login</button>
+    <div className="d-flex justify-content-center align-items-center vh-100">
+      <div className="card shadow" style={{ width: '400px' }}>
+        <div className="card-body">
+          <h3 className="card-title text-center mb-4">Login</h3>
+          <form onSubmit={handleLogin}>
+            <div className="mb-3">
+              <label htmlFor="email" className="form-label">
+                Email address
+              </label>
+              <input
+                type="email"
+                className="form-control"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="password" className="form-label">
+                Password
+              </label>
+              <input
+                type="password"
+                className="form-control"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <button type="submit" className="btn btn-primary w-100">
+              Login
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 };
@@ -107,7 +146,52 @@ const Login = ({ setIsLoggedIn }) => {
 const Register = () => <h2>Register Page</h2>;
 
 // Profile component
-const Profile = () => <h2>Profile Page</h2>;
+const Profile = () => {
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${backendUrl}/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await response.json();
+        setProfile(data);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        // Fallback to dummy data if there's an error
+        const dummyProfile = {
+          name: 'John Doe',
+          email: 'john.doe@fake.com'
+        };
+        setProfile(dummyProfile);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  if (!profile) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div className="container">
+      <h2>Profile Page</h2>
+      <div className="card mb-4 shadow-sm">
+        <div className="card-body">
+          <h5 className="card-title">Name: {profile.name}</h5>
+          <p className="card-text">Email: {profile.email}</p>
+          {/* Add more profile details here */}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Ballott component
 const Ballot = () => {
