@@ -1,152 +1,286 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
 
-function HomePage() {
-  return <h2>Home Page</h2>;
-}
+// Dummy data for ballots
+const dummyBallots = [
+  { id: 1, title: 'Presidential Election', expiresIn: '2 hours' },
+  { id: 2, title: 'City Mayor Election', expiresIn: '1 day' },
+  { id: 3, title: 'School Board Election', expiresIn: '3 hours' },
+  { id: 4, title: 'Climate Action Referendum', expiresIn: '12 hours' },
+];
 
-function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+// Homepage component
+const Home = () => {
+  const [userName, setUserName] = useState('Guest'); // Default to 'Guest'
+  const [ballots, setBallots] = useState([]);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    // TEMP: Fetch from the backend
-    try {
-      console.log('Attempting to fetch from:', `${backendUrl}`);
-      const response = await fetch(`${backendUrl}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-  
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-  
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-  
-      const data = await response.json();
-      console.log('Data received:', data);
-    } catch (error) {
-      console.error('Fetch error:', error.message);
+  // Fetch user's name from localStorage on component mount
+  useEffect(() => {
+    const storedName = localStorage.getItem('userName'); // Load the name from backend
+    if (storedName) {
+      setUserName(storedName);
     }
-  };
+    setBallots(dummyBallots); // Load dummy ballots (can replace with API call)
+  }, []);
 
   return (
-    <div className="container mt-5">
+    <div className="container">
+      <h1>Hi, {userName}!</h1>
+      <h2>Almost Expired Ballots</h2>
+
+      <div className="row">
+        {ballots.map((ballot) => (
+          <div className="col-md-4" key={ballot.id}>
+            <div className="card mb-4 shadow-sm">
+              <div className="card-body">
+                <h5 className="card-title">{ballot.title}</h5>
+                <p className="card-text">Expires in {ballot.expiresIn}</p>
+                <button className="btn btn-primary">
+                  <Link to={`/ballot/${ballot.id}`} className="text-white">
+                    Vote Now
+                  </Link>
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Login component
+const Login = ({ setIsLoggedIn }) => {
+  // Simulate login logic
+  const handleLogin = () => {
+    fetch(`${backendUrl}/`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Success:', data);
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+      });
+    localStorage.setItem('token', 'dummyToken'); // Save token to localStorage
+    setIsLoggedIn(true); // Set login state
+  };
+  
+  return (
+    <div>
       <h2>Login Page</h2>
-      <form onSubmit={handleLogin}>
-        <div className="mb-3">
-          <label className="form-label">Email address</label>
-          <input
-            type="email"
-            className="form-control"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div className="mb-3">
-          <label className="form-label">Password</label>
-          <input
-            type="password"
-            className="form-control"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit" className="btn btn-primary">Login</button>
-      </form>
+      <button onClick={handleLogin}>Login</button>
     </div>
   );
-}
+};
 
-function RegisterPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+// Register component
+const Register = () => <h2>Register Page</h2>;
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    //TODO: Implement register logic
-    console.log('Register:');
-  };
+// Profile component
+const Profile = () => <h2>Profile Page</h2>;
+
+// Ballott component
+const Ballot = () => {
+  const { id } = useParams();
+  const [ballot, setBallot] = useState(null);
+
+  useEffect(() => {
+    // Fetch the ballot data from the backend
+    const fetchBallot = async () => {
+      try {
+        const response = await fetch(`${backendUrl}/ballots/${id}`);
+        const data = await response.json();
+        setBallot(data);
+      } catch (error) {
+        console.error('Error fetching ballot:', error);
+        // Fallback to dummy data if there's an error
+        const dummyBallot = dummyBallots.find(ballot => ballot.id === parseInt(id));
+        setBallot(dummyBallot);
+      }
+    };
+
+    fetchBallot();
+  }, [id]);
+
+  if (!ballot) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <div className="container mt-5">
-      <h2>Register Page</h2>
-      <form onSubmit={handleRegister}>
-        <div className="mb-3">
-          <label className="form-label">Email address</label>
-          <input
-            type="email"
-            className="form-control"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div className="mb-3">
-          <label className="form-label">Password</label>
-          <input
-            type="password"
-            className="form-control"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <div className="mb-3">
-          <label className="form-label">Confirm Password</label>
-          <input
-            type="password"
-            className="form-control"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit" className="btn btn-primary">Register</button>
-      </form>
+    <div className="container">
+      <h2>{ballot.title}</h2>
+      <p>Expires in {ballot.expiresIn}</p>
+      {/* Add more ballot details here */}
     </div>
   );
-}
+};
 
-function App() {
+
+const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Check for login state from localStorage on component mount
+  useEffect(() => {
+    const token = localStorage.getItem('token'); // Check if token exists
+    if (token) {
+      setIsLoggedIn(true); // If token exists, user is logged in
+    }
+  }, []);
+
+  // Logout function
+  const handleLogout = () => {
+    localStorage.removeItem('token'); // Clear the token
+    setIsLoggedIn(false); // Update the state to logged out
+    window.location.href = '/';
+  };
+
   return (
     <Router>
       <nav className="navbar navbar-expand-lg navbar-light bg-light">
         <div className="container-fluid">
-          <Link className="navbar-brand" to="/">CryptoBallot</Link>
-          <div className="collapse navbar-collapse">
+          <Link className="navbar-brand" to="/">
+            CryptoBallot
+          </Link>
+
+          {/* Toggler for mobile menu */}
+          <button
+            className="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarNav"
+            aria-controls="navbarNav"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+          >
+            <span className="navbar-toggler-icon"></span>
+          </button>
+
+          <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav me-auto mb-2 mb-lg-0">
               <li className="nav-item">
-                <Link className="nav-link" to="/">Home</Link>
+                <Link className="nav-link" to="/">
+                  Home
+                </Link>
               </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/login">Login</Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/register">Register</Link>
-              </li>
+            </ul>
+
+            <ul className="navbar-nav ms-auto mb-2 mb-lg-0">
+              {/* Conditionally render buttons based on login status */}
+              {!isLoggedIn ? (
+                <>
+                  <li className="nav-item">
+                    <Link className="nav-link" to="/login">
+                      Login
+                    </Link>
+                  </li>
+                  <li className="nav-item">
+                    <Link className="nav-link" to="/register">
+                      Register
+                    </Link>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li className="nav-item">
+                    <Link className="nav-link" to="/profile">
+                      Profile
+                    </Link>
+                  </li>
+                  <li className="nav-item">
+                    <button className="nav-link btn" onClick={handleLogout}>
+                      Logout
+                    </button>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
         </div>
       </nav>
 
+      {/* Routes */}
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/ballot/:id" element={<Ballot />} />
       </Routes>
+
+      <footer className="bg-light text-center text-lg-start">
+        <div className="container p-4">
+          <div className="row">
+            {/* About Us Section */}
+            <div className="col-lg-4 col-md-6 mb-4 mb-md-0">
+              <h5 className="text-uppercase">About Us</h5>
+              <p>
+                CryptoBallot is your secure platform for voting on blockchain.
+                We provide transparency and trust for all your election needs.
+              </p>
+            </div>
+
+            {/* Useful Links Section */}
+            <div className="col-lg-4 col-md-6 mb-4 mb-md-0">
+              <h5 className="text-uppercase">Useful Links</h5>
+              <ul className="list-unstyled">
+                <li>
+                  <Link to="/" className="text-dark">Home</Link>
+                </li>
+                <li>
+                  <Link to="/login" className="text-dark">Login</Link>
+                </li>
+                <li>
+                  <Link to="/register" className="text-dark">Register</Link>
+                </li>
+                <li>
+                  <Link to="/contact" className="text-dark">Contact</Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Social Links Section */}
+            <div className="col-lg-4 col-md-12 mb-4 mb-md-0">
+              <h5 className="text-uppercase">Follow Us</h5>
+              <ul className="list-unstyled d-flex justify-content-center">
+                <li className="me-3">
+                  <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">
+                    <i className="fab fa-facebook-f"></i>
+                  </a>
+                </li>
+                <li className="me-3">
+                  <a href="https://twitter.com" target="_blank" rel="noopener noreferrer">
+                    <i className="fab fa-twitter"></i>
+                  </a>
+                </li>
+                <li className="me-3">
+                  <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">
+                    <i className="fab fa-instagram"></i>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Copyright Section */}
+        <div className="text-center p-3 bg-dark text-white">
+          © 2024 CryptoBallot. All rights reserved.
+        </div>
+      </footer>
+
+
     </Router>
   );
-}
+};
 
 export default App;
