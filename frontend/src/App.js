@@ -310,6 +310,9 @@ function RegisterPage() {
         <button type="submit" className="btn btn-primary">Register</button>
       </form>
 
+    </div>
+  );
+}
 // Ballott component
 const Ballot = () => {
   const { id } = useParams();
