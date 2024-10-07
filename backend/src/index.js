@@ -1,8 +1,11 @@
 const { Pool } = require('pg');
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const app = express();
 const PORT = process.env.PORT || 4000;
+const jwtSecret = process.env.JWT_SECRET || 'supersecretkey';
+
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -40,9 +43,28 @@ app.use(cors({
     origin: 'http://localhost:3000'
   }));
 
-// Route
-app.get('/', (req, res) => {
-  res.json({ message: 'Hello from the backend!' });
+
+// Route to get user's name
+app.get('/username', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+
+    const result = await pool.query('SELECT NAME FROM "User" WHERE ID = $1', [userId]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ name: result.rows[0].name });
+  } catch (error) {
+    console.error('Error fetching user name:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 app.listen(PORT, () => {

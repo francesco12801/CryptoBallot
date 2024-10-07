@@ -5,8 +5,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
-const signupUrl = process.env.REACT_APP_BACKEND_URL || 'http://signup:4001';
-const loginUrl = process.env.REACT_APP_BACKEND_URL || 'http://login:4002';
+const signupUrl = 'http://localhost:4001';
+const loginUrl = 'http://localhost:4002';
 
 // Dummy data for ballots
 const dummyBallots = [
@@ -21,13 +21,25 @@ const Home = () => {
   const [userName, setUserName] = useState('Guest'); // Default to 'Guest'
   const [ballots, setBallots] = useState([]);
 
-  // Fetch user's name from localStorage on component mount
   useEffect(() => {
-    const storedName = localStorage.getItem('userName'); // Load the name from backend
-    if (storedName) {
-      setUserName(storedName);
-    }
-    setBallots(dummyBallots); // Load dummy ballots (can replace with API call)
+    const fetchUserName = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${backendUrl}/username`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await response.json();
+        setUserName(data.name);
+      } catch (error) {
+        console.error('Error fetching user name:', error);
+        setUserName('Guest'); // Fallback to 'Guest' if there's an error
+      }
+    };
+
+    fetchUserName();
   }, []);
 
   return (
