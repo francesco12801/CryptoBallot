@@ -5,6 +5,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
+const signupUrl = process.env.REACT_APP_BACKEND_URL || 'http://signup:4001';
+const loginUrl = process.env.REACT_APP_BACKEND_URL || 'http://login:4002';
 
 // Dummy data for ballots
 const dummyBallots = [
@@ -78,28 +80,41 @@ const Home = () => {
 const Login = ({ setIsLoggedIn }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  // Simulate login logic
-  const handleLogin = (e) => {
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // API call to the backend
-    fetch(`${backendUrl}/`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Success:', data);
-      })
-      .catch((error) => {
-        console.error('Error:', error);
+    try {
+      const response = await fetch(`${loginUrl}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+        }),
       });
-    localStorage.setItem('token', 'dummyToken'); // Save token to localStorage
-    setIsLoggedIn(true); // Set login state
-    window.location.href = '/';
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
+      }
+
+      const data = await response.json();
+      const token = data.token;
+
+      // Get Token 
+      localStorage.setItem('authToken', token);
+
+      console.log('Login successful. Token:', token);      
+
+    } catch (error) {
+      console.error('Login error:', error.message);
+      setErrorMessage(error.message);
+    }
   };
-  
+
   return (
     <div className="d-flex justify-content-center align-items-center vh-100">
       <div className="card shadow" style={{ width: '400px' }}>
@@ -141,9 +156,6 @@ const Login = ({ setIsLoggedIn }) => {
     </div>
   );
 };
-
-// Register component
-const Register = () => <h2>Register Page</h2>;
 
 // Profile component
 const Profile = () => {
@@ -192,6 +204,111 @@ const Profile = () => {
     </div>
   );
 };
+
+
+function RegisterPage() {
+  const [name, setName] = useState('');
+  const [surname, setSurname] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+
+    // Controllo se le password corrispondono
+    if (password !== confirmPassword) {
+      setErrorMessage("Le password non corrispondono.");
+      return;
+    }
+
+    try {
+      console.log("Sending request to signup");
+      const response = await fetch(`${signupUrl}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          surname,
+          email,
+          password,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Errore durante la registrazione');
+      }
+
+      const data = await response.json();
+      console.log('Registrazione avvenuta con successo:', data);
+
+    } catch (error) {
+      console.error('Errore nella registrazione:', error.message);
+      setErrorMessage(error.message);
+    }
+  };
+
+  return (
+    <div className="container mt-5">
+      <h2>Register Page</h2>
+      {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
+      <form onSubmit={handleRegister}>
+        <div className="mb-3">
+          <label className="form-label">Name</label>
+          <input
+            type="text"
+            className="form-control"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </div>
+        <div className="mb-3">
+          <label className="form-label">Surname</label>
+          <input
+            type="text"
+            className="form-control"
+            value={surname}
+            onChange={(e) => setSurname(e.target.value)}
+            required
+          />
+        </div>
+        <div className="mb-3">
+          <label className="form-label">Email address</label>
+          <input
+            type="email"
+            className="form-control"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div className="mb-3">
+          <label className="form-label">Password</label>
+          <input
+            type="password"
+            className="form-control"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <div className="mb-3">
+          <label className="form-label">Confirm Password</label>
+          <input
+            type="password"
+            className="form-control"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit" className="btn btn-primary">Register</button>
+      </form>
 
 // Ballott component
 const Ballot = () => {
