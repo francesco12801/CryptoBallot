@@ -14,7 +14,25 @@ services:
     ports:
       - "4000:4000"
     environment:
-      - DATABASE_URL=postgres://postgres:password@db:5432/userdatabase
+      - DATABASE_URL=postgres://postgres:2345@db:5432/CryptoBallot
+    depends_on:
+      - db
+
+  signup:
+    build: ./signup
+    ports:
+      - "4001:4001"
+    environment:
+      - DATABASE_URL=postgres://postgres:2345@db:5432/CryptoBallot
+    depends_on:
+      - db
+  
+  login:
+    build: ./login
+    ports:
+      - "4002:4002"
+    environment:
+      - DATABASE_URL=postgres://postgres:2345@db:5432/CryptoBallot
     depends_on:
       - db
 
@@ -22,10 +40,10 @@ services:
     image: postgres:13
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: userdatabase
+      POSTGRES_PASSWORD: 2345          
+      POSTGRES_DB: CryptoBallot        
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 

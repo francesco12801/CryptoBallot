@@ -17,7 +17,6 @@ pool.query('SELECT NOW()', (err, res) => {
   }
 });
 
-// create users table
 pool.query(
   `CREATE TABLE IF NOT EXISTS "User" (
             ID SERIAL PRIMARY KEY,
