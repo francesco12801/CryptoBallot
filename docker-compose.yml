@@ -49,3 +49,7 @@ services:
 
 volumes:
   pgdata:
+
+networks:
+  default:
+    name: app_network
