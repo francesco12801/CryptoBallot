@@ -206,7 +206,7 @@ const Profile = () => {
 };
 
 
-function RegisterPage() {
+const Register = () => {
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
   const [email, setEmail] = useState('');
