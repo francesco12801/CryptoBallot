@@ -79,6 +79,112 @@ function LoginPage() {
   );
 }
 
+const Profile = () => {
+  const [profile, setProfile] = useState(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [walletAddress, setWalletAddress] = useState('');
+  const [showPopup, setShowPopup] = useState(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          const decoded = jwtDecode(token);
+          const response = await fetch(`${backendUrl}/profile`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          const data = await response.json();
+          setProfile(data);
+          setName(data.name);
+          setEmail(data.email);
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        const dummyProfile = {
+          name: name || 'John Doe',
+          email: email || 'john.doe@fake.com',
+        };
+        setProfile(dummyProfile);
+      }
+    };
+
+    fetchProfile();
+  }, [name, email]);
+
+  const handleConnectWallet = async () => {
+    if (window.ethereum) {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const wallet = accounts[0];
+        setWalletAddress(wallet);
+
+        const body = JSON.stringify({ walletAddress: wallet, email: profile.email });
+        const response = await fetch(`${backendUrl}/connect-wallet`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: body,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to connect wallet');
+        }
+
+        const data = await response.json();
+        console.log('Wallet connected:', data);
+        setShowPopup(false);
+      } catch (error) {
+        console.error('Error connecting wallet:', error.message);
+      }
+    } else {
+      alert('MetaMask is not installed. Please install MetaMask to connect your wallet.');
+    }
+  };
+
+  if (!profile) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div className="container">
+      <h2>Profile Page</h2>
+      <div className="card mb-4 shadow-sm">
+        <div className="card-body">
+          <h5 className="card-title">Name: {profile.name}</h5>
+          <p className="card-text">Email: {profile.email}</p>
+          <p className="card-text">Wallet Address: {walletAddress || 'Not connected'}</p>
+          <button className="btn btn-primary" onClick={() => setShowPopup(true)}>
+            Connect Wallet
+          </button>
+        </div>
+      </div>
+
+      {showPopup && (
+        <div className="popup-overlay">
+          <div className="popup-content">
+            <h5>Connect your MetaMask Wallet</h5>
+            <button className="btn btn-success" onClick={handleConnectWallet}>
+              Connect MetaMask
+            </button>
+            <button className="btn btn-secondary" onClick={() => setShowPopup(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 
 function RegisterPage() {
   const [name, setName] = useState('');
@@ -213,6 +319,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </Router>
   );
