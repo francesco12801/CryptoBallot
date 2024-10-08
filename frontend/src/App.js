@@ -1,14 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { useParams, useNavigate, BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import jwtDecode from 'jwt-decode';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+
 const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
 const signupUrl = 'http://localhost:4001';
 const loginUrl = 'http://localhost:4002';
+const refreshTokenUrl = `${backendUrl}/refresh-token`;
 
 function HomePage() {
   return <h2>Home Page</h2>;
@@ -28,10 +29,7 @@ function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-        }),
+        body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
@@ -42,7 +40,7 @@ function LoginPage() {
       const data = await response.json();
       const token = data.token;
 
-      // Get Token 
+      // Store token in localStorage
       localStorage.setItem('authToken', token);
 
       console.log('Login successful. Token:', token);
@@ -87,41 +85,63 @@ function LoginPage() {
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
   const [showPopup, setShowPopup] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('authToken');
         if (token) {
           const decoded = jwtDecode(token);
-          const response = await fetch(`${backendUrl}/profile`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-          const data = await response.json();
-          setProfile(data);
-          setName(data.name);
-          setEmail(data.email);
+          // Check if the token is expired and refresh it if necessary
+          const now = Date.now() / 1000;
+          if (decoded.exp < now) {
+            await refreshToken();
+          } else {
+            const response = await fetch(`${backendUrl}/profile`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            if (!response.ok) {
+              throw new Error('Failed to fetch profile');
+            }
+            const data = await response.json();
+            setProfile(data);
+          }
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
-        const dummyProfile = {
-          name: name || 'John Doe',
-          email: email || 'john.doe@fake.com',
-        };
-        setProfile(dummyProfile);
+        setProfile({
+          name: 'John Doe',
+          email: 'john.doe@fake.com',
+        });
       }
     };
 
     fetchProfile();
-  }, [name, email]);
+  }, []);
+
+  const refreshToken = async () => {
+    try {
+      const response = await fetch(refreshTokenUrl, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to refresh token');
+      }
+      const data = await response.json();
+      localStorage.setItem('authToken', data.token); // Store the new token
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      navigate('/login'); // Redirect to login if refresh fails
+    }
+  };
 
   const handleConnectWallet = async () => {
     if (window.ethereum) {
@@ -144,8 +164,7 @@ const Profile = () => {
           throw new Error(errorData.message || 'Failed to connect wallet');
         }
 
-        const data = await response.json();
-        console.log('Wallet connected:', data);
+        console.log('Wallet connected:', await response.json());
         setShowPopup(false);
       } catch (error) {
         console.error('Error connecting wallet:', error.message);
@@ -155,8 +174,13 @@ const Profile = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('authToken'); // Clear the token
+    navigate('/login'); // Redirect to login
+  };
+
   if (!profile) {
-    return <div>Loading...</div>;
+    return <div>Loading profile...</div>;
   }
 
   return (
@@ -169,6 +193,9 @@ const Profile = () => {
           <p className="card-text">Wallet Address: {walletAddress || 'Not connected'}</p>
           <button className="btn btn-primary" onClick={() => setShowPopup(true)}>
             Connect Wallet
+          </button>
+          <button className="btn btn-danger ms-2" onClick={handleLogout}>
+            Logout
           </button>
         </div>
       </div>
@@ -190,7 +217,6 @@ const Profile = () => {
   );
 };
 
-
 function RegisterPage() {
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
@@ -198,7 +224,7 @@ function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  
+
   const navigate = useNavigate();
 
   const handleRegister = async (event) => {
@@ -221,17 +247,14 @@ function RegisterPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Errore durante la registrazione');
+        throw new Error(errorData.message || 'Registration error');
       }
 
-      const data = await response.json();
-      console.log('Registrazione avvenuta con successo:', data);
-      
-      // Optionally navigate to a different page after successful registration
-      navigate('/login'); // Redirect to login or another page after success
+      console.log('Registration successful:', await response.json());
+      navigate('/login'); // Redirect to login after success
 
     } catch (error) {
-      console.error('Errore nella registrazione:', error.message);
+      console.error('Registration error:', error.message);
       setErrorMessage(error.message);
     }
   };
@@ -300,11 +323,11 @@ function RegisterPage() {
 function App() {
   return (
     <Router>
-      <nav className="navbar navbar-expand-lg navbar-light bg-light">
-        <div className="container-fluid">
+      <div>
+        <nav className="navbar navbar-expand-lg navbar-light bg-light">
           <Link className="navbar-brand" to="/">CryptoBallot</Link>
           <div className="collapse navbar-collapse">
-            <ul className="navbar-nav me-auto mb-2 mb-lg-0">
+            <ul className="navbar-nav">
               <li className="nav-item">
                 <Link className="nav-link" to="/">Home</Link>
               </li>
@@ -314,17 +337,19 @@ function App() {
               <li className="nav-item">
                 <Link className="nav-link" to="/register">Register</Link>
               </li>
+              <li className="nav-item">
+                <Link className="nav-link" to="/profile">Profile</Link>
+              </li>
             </ul>
           </div>
-        </div>
-      </nav>
-
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/profile" element={<Profile />} />
-      </Routes>
+        </nav>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/profile" element={<Profile />} />
+        </Routes>
+      </div>
     </Router>
   );
 }
