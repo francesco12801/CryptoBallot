@@ -170,54 +170,7 @@ const Login = ({ setIsLoggedIn }) => {
   );
 };
 
-// Profile component
-const Profile = () => {
-  const [profile, setProfile] = useState(null);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${backendUrl}/profile`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        const data = await response.json();
-        setProfile(data);
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        // Fallback to dummy data if there's an error
-        const dummyProfile = {
-          name: 'John Doe',
-          email: 'john.doe@fake.com'
-        };
-        setProfile(dummyProfile);
-      }
-    };
-
-    fetchProfile();
-  }, []);
-
-  if (!profile) {
-    return <div>Loading...</div>;
-  }
-
-  return (
-    <div className="container">
-      <h2>Profile Page</h2>
-      <div className="card mb-4 shadow-sm">
-        <div className="card-body">
-          <h5 className="card-title">Name: {profile.name}</h5>
-          <p className="card-text">Email: {profile.email}</p>
-          {/* Add more profile details here */}
-        </div>
-      </div>
-    </div>
-  );
-};
-
+// Profile Component
 const Profile = () => {
   const [profile, setProfile] = useState(null);
   const [walletAddress, setWalletAddress] = useState('');

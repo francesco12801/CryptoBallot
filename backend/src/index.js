@@ -127,6 +127,7 @@ app.get('/profile', async (req, res) => {
 // Root route
 app.get('/', (req, res) => {
   res.json({ message: 'Hello from the backend!' });
+});
 
 // Route to get user's name
 app.get('/username', async (req, res) => {
