@@ -489,6 +489,151 @@ const AboutUs = () => {
   );
 };
 
+// Main Friends component
+const Friends = () => {
+  const [friends, setFriends] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Fetch the list of friends from the backend
+    const fetchFriends = async () => {
+      try {
+        const response = await fetch(`${backendUrl}/friends`);
+        const data = await response.json();
+        setFriends(data);
+      } catch (error) {
+        setError('Error fetching friends');
+        console.error('Error fetching friends:', error);
+      }
+    };
+
+    // Fetch pending friend requests
+    const fetchPendingRequests = async () => {
+      try {
+        const response = await fetch(`${backendUrl}/friends/pending`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        const data = await response.json();
+        setPendingRequests(data);
+      } catch (error) {
+        setError('Error fetching pending requests');
+        console.error('Error fetching pending requests:', error);
+      }
+    };
+
+    // Fetch incoming friend requests
+    const fetchFriendRequests = async () => {
+      try {
+        const response = await fetch(`${backendUrl}/friends/requests`);
+        const data = await response.json();
+        setFriendRequests(data);
+      } catch (error) {
+        setError('Error fetching friend requests');
+        console.error('Error fetching friend requests:', error);
+      }
+    };
+
+    fetchFriends();
+    fetchPendingRequests();
+    fetchFriendRequests();
+  }, []);
+
+  if (error) {
+    return <div>{error}</div>;
+  }
+
+  return (
+    <div className="container">
+      <h2>My Friends</h2>
+      <ul>
+        {friends.length === 0 ? (
+          <li>No friends added yet.</li>
+        ) : (
+          friends.map((friend) => (
+            <li key={friend.id}>{friend.name}</li>
+          ))
+        )}
+      </ul>
+
+      <h2>Pending Friend Requests</h2>
+      <ul>
+        {pendingRequests.length === 0 ? (
+          <li>No pending requests.</li>
+        ) : (
+          pendingRequests.map((request) => (
+            <li key={request.id}>
+              {request.name} ({request.email}){' '}
+              <button onClick={() => acceptFriendRequest(request.id)}>Accept</button>
+              <button onClick={() => rejectFriendRequest(request.id)}>Reject</button>
+            </li>
+          ))
+        )}
+      </ul>
+
+      <h2>Friend Requests Sent</h2>
+      <ul>
+        {friendRequests.length === 0 ? (
+          <li>No outgoing requests.</li>
+        ) : (
+          friendRequests.map((request) => (
+            <li key={request.id}>{request.name}</li>
+          ))
+        )}
+      </ul>
+    </div>
+  );
+};
+
+// Helper function to accept a friend request
+const acceptFriendRequest = async (requestId) => {
+  try {
+    const response = await fetch(`${backendUrl}/friends/accept`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ requestId }),
+    });
+    const data = await response.json();
+    if (data.error) {
+      console.error('Error accepting request:', data.error);
+    } else {
+      console.log('Friend request accepted:', data.message);
+      window.location.reload(); // Refresh the page after accepting
+    }
+  } catch (error) {
+    console.error('Error accepting request:', error);
+  }
+};
+
+// Helper function to reject a friend request
+const rejectFriendRequest = async (requestId) => {
+  try {
+    const response = await fetch(`${backendUrl}/friends/reject`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ requestId }),
+    });
+    const data = await response.json();
+    if (data.error) {
+      console.error('Error rejecting request:', data.error);
+    } else {
+      console.log('Friend request rejected:', data.message);
+      window.location.reload(); // Refresh the page after rejecting
+    }
+  } catch (error) {
+    console.error('Error rejecting request:', error);
+  }
+};
+
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);

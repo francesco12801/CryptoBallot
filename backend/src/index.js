@@ -44,10 +44,189 @@ pool.query(
   }
 );
 
+// Create Friends table if it doesn't exist
+pool.query(
+  `CREATE TABLE IF NOT EXISTS Friends (
+            USER_ID INT REFERENCES "User"(ID) ON DELETE CASCADE,
+            FRIEND_ID INT REFERENCES "User"(ID) ON DELETE CASCADE,
+            CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (USER_ID, FRIEND_ID)
+        )`,
+  (err, res) => {
+    if (err) {
+      console.error('Error creating the friends table:', err);
+    } else {
+      console.log('Friends table created successfully');
+    }
+  }
+);
+
+// Create Friends table if it doesn't exist
+pool.query(
+  ` CREATE TABLE IF NOT EXISTS "FriendRequests" (
+    ID SERIAL PRIMARY KEY,
+    REQUESTER_ID INT REFERENCES "User"(ID) ON DELETE CASCADE,
+    RECEIVER_ID INT REFERENCES "User"(ID) ON DELETE CASCADE,
+    STATUS VARCHAR(20) DEFAULT 'pending', -- 'pending', 'accepted', or 'rejected'
+    CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );`,
+  (err, res) => {
+    if (err) {
+      console.error('Error creating the friends table:', err);
+    } else {
+      console.log('Friends table created successfully');
+    }
+  }
+);
+
 app.use(cors({
   origin: 'http://localhost:3000',
 }));
 
+// Route to send a friend request
+app.post('/friends/request', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const { friendId } = req.body;
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+
+    // Check if the friendId exists
+    const friendExists = await pool.query('SELECT * FROM "User" WHERE ID = $1', [friendId]);
+    if (friendExists.rows.length === 0) {
+      return res.status(404).json({ error: 'Friend not found' });
+    }
+
+    // Check if a friend request already exists (pending or accepted)
+    const existingRequest = await pool.query(
+      'SELECT * FROM "FriendRequests" WHERE REQUESTER_ID = $1 AND RECEIVER_ID = $2 AND STATUS = $3',
+      [userId, friendId, 'pending']
+    );
+    if (existingRequest.rows.length > 0) {
+      return res.status(400).json({ error: 'Friend request already sent' });
+    }
+
+    // Insert a new pending friend request
+    await pool.query(
+      'INSERT INTO "FriendRequests" (REQUESTER_ID, RECEIVER_ID, STATUS) VALUES ($1, $2, $3)',
+      [userId, friendId, 'pending']
+    );
+
+    res.status(200).json({ message: 'Friend request sent successfully' });
+  } catch (error) {
+    console.error('Error sending friend request:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+
+// Route to accept a friend request
+app.post('/friends/accept', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const { requestId } = req.body;
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+
+    // Check if the friend request exists and is pending
+    const request = await pool.query(
+      'SELECT * FROM "FriendRequests" WHERE ID = $1 AND RECEIVER_ID = $2 AND STATUS = $3',
+      [requestId, userId, 'pending']
+    );
+    if (request.rows.length === 0) {
+      return res.status(404).json({ error: 'Friend request not found or already processed' });
+    }
+
+    const requesterId = request.rows[0].requester_id;
+
+    // Update the request to accepted
+    await pool.query(
+      'UPDATE "FriendRequests" SET STATUS = $1 WHERE ID = $2',
+      ['accepted', requestId]
+    );
+
+    // Insert the friendship into the Friends table
+    await pool.query(
+      'INSERT INTO "Friends" (USER_ID, FRIEND_ID) VALUES ($1, $2), ($2, $1)', // Mutual friendship
+      [userId, requesterId]
+    );
+
+    res.status(200).json({ message: 'Friend request accepted' });
+  } catch (error) {
+    console.error('Error accepting friend request:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Route to get pending friend requests
+app.get('/friends/pending', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+
+    const pendingRequests = await pool.query(
+      'SELECT fr.ID, u.NAME, u.EMAIL FROM "FriendRequests" fr JOIN "User" u ON fr.REQUESTER_ID = u.ID WHERE fr.RECEIVER_ID = $1 AND fr.STATUS = $2',
+      [userId, 'pending']
+    );
+
+    res.status(200).json(pendingRequests.rows);
+  } catch (error) {
+    console.error('Error retrieving pending requests:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+// Route to reject a friend request
+app.post('/friends/reject', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const { requestId } = req.body;
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+
+    // Check if the friend request exists and is pending
+    const request = await pool.query(
+      'SELECT * FROM "FriendRequests" WHERE ID = $1 AND RECEIVER_ID = $2 AND STATUS = $3',
+      [requestId, userId, 'pending']
+    );
+    if (request.rows.length === 0) {
+      return res.status(404).json({ error: 'Friend request not found or already processed' });
+    }
+
+    // Update the request to rejected
+    await pool.query(
+      'UPDATE "FriendRequests" SET STATUS = $1 WHERE ID = $2',
+      ['rejected', requestId]
+    );
+
+    res.status(200).json({ message: 'Friend request rejected' });
+  } catch (error) {
+    console.error('Error rejecting friend request:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Endpoint per connettere il wallet
 app.post('/connect-wallet', async (req, res) => {

@@ -13,7 +13,7 @@ services:
     ports:
       - "4000:4000"
     environment:
-      - DATABASE_URL=postgres://postgres:2345@db:5432/CryptoBallot
+      - DATABASE_URL=postgres://postgres:2345@db:5432/cryptoballot
     depends_on:
       - db
 
@@ -22,7 +22,7 @@ services:
     ports:
       - "4001:4001"
     environment:
-      - DATABASE_URL=postgres://postgres:2345@db:5432/CryptoBallot
+      - DATABASE_URL=postgres://postgres:2345@db:5432/cryptoballot
     depends_on:
       - db
   
@@ -31,7 +31,7 @@ services:
     ports:
       - "4002:4002"
     environment:
-      - DATABASE_URL=postgres://postgres:2345@db:5432/CryptoBallot
+      - DATABASE_URL=postgres://postgres:2345@db:5432/cryptoballot
     depends_on:
       - db
 
@@ -40,7 +40,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 2345          
-      POSTGRES_DB: CryptoBallot        
+      POSTGRES_DB: cryptoballot        
     ports:
       - "5433:5432"
     volumes:
