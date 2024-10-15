@@ -20,13 +20,19 @@ const dummyBallots = [
 
 // Homepage component
 const Home = () => {
-  const [userName, setUserName] = useState('Guest'); // Default to 'Guest'
   const [ballots, setBallots] = useState([]);
+  const [userName, setUserName] = useState('Guest');
 
   useEffect(() => {
-    const fetchUserName = async () => {
+    // Dummy data for ballots
+    setBallots([
+      { id: 1, title: 'Presidential Election', expiresIn: '2 hours' },
+      { id: 2, title: 'City Mayor Election', expiresIn: '1 day' },
+      { id: 3, title: 'School Board Election', expiresIn: '3 hours' },
+      { id: 4, title: 'Climate Action Referendum', expiresIn: '12 hours' },
+    ]);
+    const fetchUserName = async (token) => {
       try {
-        const token = localStorage.getItem('authToken');
         const response = await fetch(`${backendUrl}/username`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -34,21 +40,27 @@ const Home = () => {
           },
         });
         const data = await response.json();
-        setUserName(data.name);
+        console.log('Data:', data);
+        if (!response.ok) {
+          setUserName('Guest'); // Fallback to 'Guest' if there's an error
+        } else {
+          setUserName(data.name);
+        }
       } catch (error) {
         console.error('Error fetching user name:', error);
         setUserName('Guest'); // Fallback to 'Guest' if there's an error
       }
     };
-
-    fetchUserName();
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      fetchUserName(token);
+    }
   }, []);
 
   return (
     <div className="container">
-      <h1>Hi, {userName}!</h1>
+      <h1>Welcome to CryptoBallot, {userName}</h1>
       <h2>Almost expired ballots</h2>
-
       <div className="row">
         {ballots.map((ballot) => (
           <div className="col-md-4" key={ballot.id}>
@@ -133,6 +145,7 @@ const Login = ({ setIsLoggedIn }) => {
       <div className="card shadow" style={{ width: '400px' }}>
         <div className="card-body">
           <h3 className="card-title text-center mb-4">Login</h3>
+          {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
           <form onSubmit={handleLogin}>
             <div className="mb-3">
               <label htmlFor="email" className="form-label">
@@ -264,6 +277,7 @@ const Profile = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('authToken'); // Clear the token
+    setProfile(null); // Clear the profile state
     navigate('/login'); // Redirect to login
   };
 
@@ -408,7 +422,7 @@ const Register = () => {
     </div>
   );
 }
-// Ballott component
+// Ballot component
 const Ballot = () => {
   const { id } = useParams();
   const [ballot, setBallot] = useState(null);
@@ -634,23 +648,46 @@ const rejectFriendRequest = async (requestId) => {
   }
 };
 
-
+//App component
 const App = () => {
+  const [userName, setUserName] = useState('Guest'); // Default to 'Guest'
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Check for login state from localStorage on component mount
   useEffect(() => {
-    const token = localStorage.getItem('token'); // Check if token exists
+    const fetchUserName = async (token) => {
+      try {
+        const response = await fetch(`${backendUrl}/username`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await response.json();
+        console.log('Data:', data);
+        if (!response.ok) {
+          setUserName('Guest'); // Fallback to 'Guest' if there's an error
+          setIsLoggedIn(false);
+        } else {
+          setUserName(data.name);
+          setIsLoggedIn(true);
+        }
+      } catch (error) {
+        console.error('Error fetching user name:', error);
+        setUserName('Guest'); // Fallback to 'Guest' if there's an error
+      }
+    };
+    const token = localStorage.getItem('authToken');
     if (token) {
-      setIsLoggedIn(true); // If token exists, user is logged in
+      fetchUserName(token);
     }
   }, []);
 
   // Logout function
   const handleLogout = () => {
-    localStorage.removeItem('token'); // Clear the token
+    localStorage.removeItem('authToken'); // Clear the token
     setIsLoggedIn(false); // Update the state to logged out
-    window.location.href = '/';
+    window.location.reload(); // Refresh the page after logout
   };
 
   return (
@@ -680,9 +717,6 @@ const App = () => {
                 <Link className="nav-link" to="/">
                   Home
                 </Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/profile">Profile</Link>
               </li>
             </ul>
 
@@ -720,10 +754,11 @@ const App = () => {
         </div>
       </nav>
 
+
       {/* Routes */}
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/ballot/:id" element={<Ballot />} />
