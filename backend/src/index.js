@@ -83,6 +83,52 @@ app.use(cors({
   origin: 'http://localhost:3000',
 }));
 
+// Route to get your friends
+app.get('/friends', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+
+    const friends = await pool.query(
+      'SELECT u.ID, u.NAME, u.EMAIL FROM "friends" f JOIN "User" u ON f.FRIEND_ID = u.ID WHERE f.USER_ID = $1',
+      [userId]
+    );
+
+    res.status(200).json(friends.rows);
+  } catch (error) {
+    console.error('Error fetching friends:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Route to get your pending requests
+app.get('/friends/requests', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+
+    const requests = await pool.query(
+      'SELECT fr.ID, u.NAME, u.EMAIL FROM "FriendRequests" fr JOIN "User" u ON fr.REQUESTER_ID = $1 WHERE fr.RECEIVER_ID = u.ID AND fr.STATUS = $2',
+      [userId, 'pending']
+    );
+
+    res.status(200).json(requests.rows);
+  } catch (error) {
+    console.error('Error fetching friend requests:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Route to send a friend request
 app.post('/friends/request', async (req, res) => {
   const token = req.headers.authorization?.split(' ')[1];
@@ -99,7 +145,7 @@ app.post('/friends/request', async (req, res) => {
     // Check if the friendId exists
     const friendExists = await pool.query('SELECT * FROM "User" WHERE ID = $1', [friendId]);
     if (friendExists.rows.length === 0) {
-      return res.status(404).json({ error: 'Friend not found' });
+      return res.status(404).json({ error: 'Friend not found', friendId: friendId });
     }
 
     // Check if a friend request already exists (pending or accepted)
@@ -158,7 +204,7 @@ app.post('/friends/accept', async (req, res) => {
 
     // Insert the friendship into the Friends table
     await pool.query(
-      'INSERT INTO "Friends" (USER_ID, FRIEND_ID) VALUES ($1, $2), ($2, $1)', // Mutual friendship
+      'INSERT INTO "friends" (USER_ID, FRIEND_ID) VALUES ($1, $2), ($2, $1)', // Mutual friendship
       [userId, requesterId]
     );
 
@@ -327,6 +373,23 @@ app.get('/username', async (req, res) => {
     res.json({ name: result.rows[0].name });
   } catch (error) {
     console.error('Error fetching user name:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Route to get user details
+app.get('/profile/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query('SELECT * FROM "User" WHERE ID = $1', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching user details:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

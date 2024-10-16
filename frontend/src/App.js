@@ -132,6 +132,7 @@ const Login = ({ setIsLoggedIn }) => {
       localStorage.setItem('authToken', token);
 
       console.log('Login successful. Token:', token);
+      setIsLoggedIn(true);
       navigate('/profile');
 
     } catch (error) {
@@ -296,6 +297,7 @@ const Profile = () => {
           <button className="btn btn-primary" onClick={() => setShowPopup(true)}>
             Connect Wallet
           </button>
+          <Link to="/profile/friends" className="btn btn-primary ms-2">Your Friends</Link>
           <button className="btn btn-danger ms-2" onClick={handleLogout}>
             Logout
           </button>
@@ -319,6 +321,75 @@ const Profile = () => {
   );
 };
 
+// Other profile component
+const OtherProfile = ({isLoggedIn}) => {
+  const { id } = useParams();
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch(`${backendUrl}/profile/${id}`);
+        if (!response.ok) {
+          console.error('Error fetching profile:', response.statusText);
+        }
+        const data = await response.json();
+        setProfile(data);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        setProfile({
+          name: 'John Doe',
+          email: 'placeholder@placeholder.com',
+        });
+      }
+    }
+    console.log("fetching profile");
+    fetchProfile();
+  }, [id]);
+
+  const handleSendRequest = async () => {
+    try {
+      const response = await fetch(`${backendUrl}/friends/request`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ friendId: id }),
+      }
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error + errorData.friendId || 'Failed to send friend request');
+      }
+    } catch (error) {
+      console.error('Error sending friend request:', error);
+    }
+  };
+  
+  if (!profile) {
+    return <div>Loading profile...</div>;
+  }
+
+  return (
+    <div className="container">
+      <h2>{profile.name}'s Profile Page</h2>
+      <div className="card mb-4 shadow-sm">
+        <div className="card-body">
+          <h5 className="card-title">Name: {profile.name}</h5>
+          <p className="card-text">Email: {profile.email}</p>
+        </div>
+      </div>
+      {isLoggedIn && (
+        <button className="btn btn-primary" onClick={handleSendRequest}>
+          Send Friend Request
+        </button>
+      )}
+    </div>
+  );
+};
+
+// Register component
 const Register = () => {
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
@@ -514,7 +585,11 @@ const Friends = () => {
     // Fetch the list of friends from the backend
     const fetchFriends = async () => {
       try {
-        const response = await fetch(`${backendUrl}/friends`);
+        const response = await fetch(`${backendUrl}/friends`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
         const data = await response.json();
         setFriends(data);
       } catch (error) {
@@ -528,7 +603,7 @@ const Friends = () => {
       try {
         const response = await fetch(`${backendUrl}/friends/pending`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
+            Authorization: `Bearer ${localStorage.getItem('authToken')}`
           }
         });
         const data = await response.json();
@@ -542,7 +617,11 @@ const Friends = () => {
     // Fetch incoming friend requests
     const fetchFriendRequests = async () => {
       try {
-        const response = await fetch(`${backendUrl}/friends/requests`);
+        const response = await fetch(`${backendUrl}/friends/requests`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
         const data = await response.json();
         setFriendRequests(data);
       } catch (error) {
@@ -608,7 +687,7 @@ const acceptFriendRequest = async (requestId) => {
     const response = await fetch(`${backendUrl}/friends/accept`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ requestId }),
@@ -631,7 +710,7 @@ const rejectFriendRequest = async (requestId) => {
     const response = await fetch(`${backendUrl}/friends/reject`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ requestId }),
@@ -687,7 +766,7 @@ const App = () => {
   const handleLogout = () => {
     localStorage.removeItem('authToken'); // Clear the token
     setIsLoggedIn(false); // Update the state to logged out
-    window.location.reload(); // Refresh the page after logout
+    window.location.href = '/'; // Redirect to home page
   };
 
   return (
@@ -758,9 +837,11 @@ const App = () => {
       {/* Routes */}
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn}/>} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/friends" element={<Friends />} />
+        <Route path="/profiles/:id" element={<OtherProfile isLoggedIn={isLoggedIn} />} />
         <Route path="/ballot/:id" element={<Ballot />} />
         <Route path="/about" element={<AboutUs />} />
       </Routes>
