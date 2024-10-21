@@ -274,6 +274,33 @@ app.post('/friends/reject', async (req, res) => {
   }
 });
 
+app.get('/friends/check/:id', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  const { id } = req.params;
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+
+    const friends = await pool.query(
+      'SELECT * FROM "friends" f JOIN "User" u ON f.FRIEND_ID = $1 WHERE f.USER_ID = $2',
+      [id, userId]
+    );
+    if (friends.rows.length === 0) {
+      return res.status(404).json({ message: 'false' });
+    } else 
+    {
+      return res.status(200).json({ message: 'true' });
+    }
+  } catch (error) {
+    console.error('Error fetching friends:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Endpoint per connettere il wallet
 app.post('/connect-wallet', async (req, res) => {
   const { walletAddress, email } = req.body; // Assicurati di avere anche l'email qui

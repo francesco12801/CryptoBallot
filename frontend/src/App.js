@@ -325,6 +325,9 @@ const Profile = () => {
 const OtherProfile = ({isLoggedIn}) => {
   const { id } = useParams();
   const [profile, setProfile] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [error, setError] = useState(null);
+  const [isFriend, setIsFriend] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -343,8 +346,33 @@ const OtherProfile = ({isLoggedIn}) => {
         });
       }
     }
+
+    const checkFriend = async () => {
+      console.log("checking friends");
+      try {
+        const response = await fetch(`${backendUrl}/friends/check/${id}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+        const data = await response.json();
+        if (response.status == 404) {
+          console.log("not friends");
+          setIsFriend = false;
+        } else if (response.ok) {
+          console.log("friends");
+          setIsFriend(true);
+          setMessage(`You and ${profile?.name || 'this user'} are friends`);
+        }
+      } catch(error) {
+        console.error(error);
+      }
+    }
+
     console.log("fetching profile");
     fetchProfile();
+    console.log("checking friends");
+    checkFriend();
   }, [id]);
 
   const handleSendRequest = async () => {
@@ -362,8 +390,13 @@ const OtherProfile = ({isLoggedIn}) => {
         const errorData = await response.json();
         throw new Error(errorData.error + errorData.friendId || 'Failed to send friend request');
       }
+      if (response.ok) {
+        setMessage('Friend request sent successfully');
+        setIsFriend(true);
+      }
     } catch (error) {
       console.error('Error sending friend request:', error);
+      setError(error.message);
     }
   };
   
@@ -380,8 +413,10 @@ const OtherProfile = ({isLoggedIn}) => {
           <p className="card-text">Email: {profile.email}</p>
         </div>
       </div>
-      {isLoggedIn && (
-        <button className="btn btn-primary" onClick={handleSendRequest}>
+      {message && <div className="alert alert-success">{message}</div>}
+      {error && <div className="alert alert-danger">{error}</div>}
+      {isLoggedIn && !isFriend &&(
+        <button id="request-button" className="btn btn-primary" onClick={handleSendRequest}>
           Send Friend Request
         </button>
       )}
