@@ -17,6 +17,12 @@ services:
     depends_on:
       - db
 
+  smartcontract:
+    build: ./crypto-ballot-manager
+    ports:
+      - "4005:4005"
+    
+
   signup:
     build: ./signup
     ports:

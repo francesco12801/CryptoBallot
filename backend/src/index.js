@@ -421,6 +421,9 @@ app.get('/profile/:id', async (req, res) => {
   }
 });
 
+
+
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Backend is running on port ${PORT}`);
