@@ -9,7 +9,7 @@ COPY . .
 RUN npm install
 
 # Expose port
-EXPOSE 3000
+EXPOSE 4005
 
 # Start the service
 CMD ["npm", "start"]
