@@ -9,15 +9,15 @@ class VotingService {
     }
 
     async startUser(userAddress) {
-        // Creare un signer basato sull'indirizzo dell'utente
+        
         const signer = this.provider.getSigner(userAddress);
 
-        // Collega il contratto al signer
+        
         const contractWithSigner = this.contract.connect(signer);
 
-        // Esegui la funzione del contratto
+        
         try {
-            const transaction = await contractWithSigner.startUser(); // Assicurati che 'startUser' sia una funzione nel tuo contratto
+            const transaction = await contractWithSigner.startUser(); 
             const receipt = await transaction.wait();
 
             return {
