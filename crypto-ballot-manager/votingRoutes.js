@@ -11,16 +11,16 @@ const VotingService = require('./votingService');
 // User routes
 
 router.post('/start-user', async (req, res) => {
-    
+    const { walletAddress, signer } = req.body;
     try {
         
         
         // Crea un'istanza di ethers.Wallet utilizzando la chiave privata dell'utente
-        const privateKey = '37a2751860b8ef5cf2b02b329de16417db28b1b7a03a2898596996dcf8c0cbeb';
-        const wallet = new ethers.Wallet(privateKey, new ethers.JsonRpcProvider('https://rpc.sepolia.org'));
+        // const privateKey = '37a2751860b8ef5cf2b02b329de16417db28b1b7a03a2898596996dcf8c0cbeb';
+        // const wallet = new ethers.Wallet(privateKey, new ethers.JsonRpcProvider('https://rpc.sepolia.org'));
 
         // Crea un'istanza di VotingService utilizzando il wallet
-        const votingService = new VotingService(wallet);
+        const votingService = new VotingService(signer);
 
 
         // Chiama la funzione startUser()

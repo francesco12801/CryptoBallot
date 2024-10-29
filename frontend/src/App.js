@@ -5,11 +5,13 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import jwtDecode from 'jwt-decode';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+const VotingService = require('./votingService');
 
 const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
 const signupUrl = 'http://localhost:4001';
 const loginUrl = 'http://localhost:4002';
 const refreshTokenUrl = `${backendUrl}/refresh-token`;
+
 
 // Dummy data for ballots
 const dummyBallots = [
@@ -251,7 +253,12 @@ const Profile = () => {
     if (window.ethereum) {
       try {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const wallet = accounts[0];
+        //const wallet = accounts[0];
+        //setWalletAddress(wallet);
+
+        const provider = new ethers.providers.Web3Provider(window.ethereum, "sepolia");
+        const signer = provider.getSigner();
+        const wallet = await signer.getAddress();
         setWalletAddress(wallet);
 
         const body = JSON.stringify({ walletAddress: wallet, email: profile.email });
@@ -271,24 +278,18 @@ const Profile = () => {
         console.log('Wallet connected:', await response.json());
 
         console.log('trying to start user');
-        const createAccountUrl = 'http://localhost:4005/api/voting/start-user';
-        console.log('trying to start user');
-        const body2 = JSON.stringify({ walletAddress: wallet });
-        const response2 = await fetch(`${createAccountUrl}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: body2,
-        });
-        if (response2.ok) {
-          console.log('User started:', await response2.json());
-        } else {
-          console.log('User not started:', await response2.json());
+        const votingService = new VotingService(signer);
+        try {
+          const result = await votingService.startUser();
+          console.log('User started:', result);
+        } catch (error) {
+          console.error('Error starting user:', error);
         }
+      } catch (error) {
+        console.error('Error connecting wallet:', error.message);
+      }
         
-        
-        const walletAddress = wallet;
+        /* const walletAddress = wallet;
         
         const userInfoUrl = `http://localhost:4005/api/voting/user/${walletAddress}`;
 
@@ -313,7 +314,7 @@ const Profile = () => {
         setShowPopup(false);
       } catch (error) {
         console.error('Error connecting wallet:', error.message);
-      }
+      } */
     } else {
       alert('MetaMask is not installed. Please install MetaMask to connect your wallet.');
     }
