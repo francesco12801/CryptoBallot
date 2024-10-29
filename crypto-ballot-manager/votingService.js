@@ -5,26 +5,36 @@ class VotingService {
     constructor() {
         this.provider = new ethers.JsonRpcProvider('https://rpc.sepolia.org');
         this.contractAddress = '0x70D4772D570f56AA0DdE57dCA4CbBa72928c7107';
-        this.contract = new ethers.Contract(
-            this.contractAddress,
-            contractABI,
-            this.provider
-        );
+        this.contract = new ethers.Contract(this.contractAddress, contractABI, this.provider);
     }
 
-    // User Management
-    async startUser() {
+    async startUser(userAddress) {
+        // Creare un signer basato sull'indirizzo dell'utente
+        const signer = this.provider.getSigner(userAddress);
+
+        // Collega il contratto al signer
+        const contractWithSigner = this.contract.connect(signer);
+
+        // Esegui la funzione del contratto
         try {
-            const tx = await this.contract.startUser();
-            return await tx.wait();
+            const transaction = await contractWithSigner.startUser(); // Assicurati che 'startUser' sia una funzione nel tuo contratto
+            const receipt = await transaction.wait();
+
+            return {
+                transactionHash: receipt.transactionHash,
+                blockNumber: receipt.blockNumber,
+            };
         } catch (error) {
-            console.error('Error starting user:', error);
-            throw error;
+            console.error('Error executing contract function:', error);
+            throw new Error('Transaction failed');
         }
     }
 
+
+
     async getUserInfo(address) {
         try {
+            console.log('Getting user info for address:', address); 
             const userInfo = await this.contract.getUserInfo(address);
             return {
                 isUser: userInfo.isUser,
@@ -40,7 +50,7 @@ class VotingService {
         }
     }
 
-    
+
 }
 
 module.exports = VotingService;

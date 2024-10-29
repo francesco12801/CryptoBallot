@@ -1,6 +1,7 @@
 const { Pool } = require('pg');
 const express = require('express');
 const cors = require('cors');
+
 const jwt = require('jsonwebtoken');
 const Web3 = require('web3');
 const app = express();
@@ -291,8 +292,7 @@ app.get('/friends/check/:id', async (req, res) => {
     );
     if (friends.rows.length === 0) {
       return res.status(404).json({ message: 'false' });
-    } else 
-    {
+    } else {
       return res.status(200).json({ message: 'true' });
     }
   } catch (error) {
@@ -303,8 +303,8 @@ app.get('/friends/check/:id', async (req, res) => {
 
 // Endpoint per connettere il wallet
 app.post('/connect-wallet', async (req, res) => {
-  const { walletAddress, email } = req.body; // Assicurati di avere anche l'email qui
 
+  const { walletAddress, email } = req.body; // Assicurati di avere anche l'email qui  
   if (!walletAddress || !email) {
     return res.status(400).json({ message: 'Wallet address and email are required.' });
   }
@@ -338,7 +338,12 @@ app.post('/connect-wallet', async (req, res) => {
       'UPDATE "User" SET wallet = $1 WHERE email = $2 RETURNING *',
       [walletAddress, email]
     );
-    console.log('user inserted with wallet: ', wall); 
+
+    console.log("Trying to make a call to the contract service");
+
+
+
+    console.log('user inserted with wallet: ', wall);
 
     res.status(200).json({ message: 'Wallet connected successfully', user: result.rows[0] });
   } catch (error) {
@@ -348,14 +353,14 @@ app.post('/connect-wallet', async (req, res) => {
 });
 
 app.get('/profile', async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1]; 
+  const token = req.headers.authorization?.split(' ')[1];
   if (!token) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
   try {
     // Verifica e decodifica il token per ottenere l'email
-    const decoded = jwt.verify(token, 'supersecretkey'); 
+    const decoded = jwt.verify(token, 'supersecretkey');
     const email = decoded.email; // Ottieni l'email dal token
 
     // Recupera solo il nome e l'email dell'utente dal database

@@ -1,3 +1,4 @@
+import { ethers } from 'ethers';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -184,6 +185,7 @@ const Login = ({ setIsLoggedIn }) => {
   );
 };
 
+
 // Profile Component
 const Profile = () => {
   const [profile, setProfile] = useState(null);
@@ -267,6 +269,47 @@ const Profile = () => {
         }
 
         console.log('Wallet connected:', await response.json());
+
+        // console.log('trying to start user');
+        // const createAccountUrl = 'http://localhost:4005/api/voting/start-user';
+        // console.log('trying to start user');
+        // const body2 = JSON.stringify({ walletAddress: wallet });
+        // const response2 = await fetch(`${createAccountUrl}`, {
+        //   method: 'POST',
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //   },
+        //   body: body2,
+        // });
+        // if (response2.ok) {
+        //   console.log('User started:', await response2.json());
+        // } else {
+        //   console.log('User not started:', await response2.json());
+        // }
+        console.log('ciaociaociaociaociaociao');
+        const walletAddress = wallet;
+        console.log('trying to start user: ', walletAddress);
+        console.log('ciaociaociaociaociaociao');
+        const userInfoUrl = `http://localhost:4005/api/voting/user/${walletAddress}`;
+
+        try {
+          // Use fetch with a GET method
+          const response3 = await fetch(userInfoUrl, {
+            method: 'GET', // Change the method to GET
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          // Check if the response is OK
+          if (response3.ok) {
+            console.log('User started:', await response3.json());
+          } else {
+            console.log('User not started:', await response3.json());
+          }
+        } catch (error) {
+          console.error('Error fetching user info:', error);
+        }
         setShowPopup(false);
       } catch (error) {
         console.error('Error connecting wallet:', error.message);
@@ -322,7 +365,7 @@ const Profile = () => {
 };
 
 // Other profile component
-const OtherProfile = ({isLoggedIn}) => {
+const OtherProfile = ({ isLoggedIn }) => {
   const { id } = useParams();
   const [profile, setProfile] = useState(null);
   const [message, setMessage] = useState(null);
@@ -364,7 +407,7 @@ const OtherProfile = ({isLoggedIn}) => {
           setIsFriend(true);
           setMessage(`You and ${profile?.name || 'this user'} are friends`);
         }
-      } catch(error) {
+      } catch (error) {
         console.error(error);
       }
     }
@@ -399,7 +442,7 @@ const OtherProfile = ({isLoggedIn}) => {
       setError(error.message);
     }
   };
-  
+
   if (!profile) {
     return <div>Loading profile...</div>;
   }
@@ -415,7 +458,7 @@ const OtherProfile = ({isLoggedIn}) => {
       </div>
       {message && <div className="alert alert-success">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
-      {isLoggedIn && !isFriend &&(
+      {isLoggedIn && !isFriend && (
         <button id="request-button" className="btn btn-primary" onClick={handleSendRequest}>
           Send Friend Request
         </button>
@@ -872,7 +915,7 @@ const App = () => {
       {/* Routes */}
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn}/>} />
+        <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/friends" element={<Friends />} />
