@@ -2,22 +2,22 @@ const { ethers } = require('ethers');
 const contractABI = require('./abi.json');
 
 class VotingService {
-    constructor() {
+    
+    constructor(wallet = null) {
         this.provider = new ethers.JsonRpcProvider('https://rpc.sepolia.org');
         this.contractAddress = '0x70D4772D570f56AA0DdE57dCA4CbBa72928c7107';
-        this.contract = new ethers.Contract(this.contractAddress, contractABI, this.provider);
+        
+        // If a wallet is passed, use it; otherwise, use the provider for read-only access
+        this.contract = new ethers.Contract(
+            this.contractAddress,
+            contractABI,
+            wallet ? wallet.connect(this.provider) : this.provider
+        );
     }
+    async startUser() {
 
-    async startUser(userAddress) {
-        
-        const signer = this.provider.getSigner(userAddress);
-
-        
-        const contractWithSigner = this.contract.connect(signer);
-
-        
         try {
-            const transaction = await contractWithSigner.startUser(); 
+            const transaction = await this.contract.startUser();
             const receipt = await transaction.wait();
 
             return {
@@ -34,7 +34,7 @@ class VotingService {
 
     async getUserInfo(address) {
         try {
-            console.log('Getting user info for address:', address); 
+            console.log('Getting user info for address:', address);
             const userInfo = await this.contract.getUserInfo(address);
             return {
                 isUser: userInfo.isUser,

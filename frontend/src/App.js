@@ -270,26 +270,26 @@ const Profile = () => {
 
         console.log('Wallet connected:', await response.json());
 
-        // console.log('trying to start user');
-        // const createAccountUrl = 'http://localhost:4005/api/voting/start-user';
-        // console.log('trying to start user');
-        // const body2 = JSON.stringify({ walletAddress: wallet });
-        // const response2 = await fetch(`${createAccountUrl}`, {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //   },
-        //   body: body2,
-        // });
-        // if (response2.ok) {
-        //   console.log('User started:', await response2.json());
-        // } else {
-        //   console.log('User not started:', await response2.json());
-        // }
-        console.log('ciaociaociaociaociaociao');
+        console.log('trying to start user');
+        const createAccountUrl = 'http://localhost:4005/api/voting/start-user';
+        console.log('trying to start user');
+        const body2 = JSON.stringify({ walletAddress: wallet });
+        const response2 = await fetch(`${createAccountUrl}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: body2,
+        });
+        if (response2.ok) {
+          console.log('User started:', await response2.json());
+        } else {
+          console.log('User not started:', await response2.json());
+        }
+        
+        
         const walletAddress = wallet;
-        console.log('trying to start user: ', walletAddress);
-        console.log('ciaociaociaociaociaociao');
+        
         const userInfoUrl = `http://localhost:4005/api/voting/user/${walletAddress}`;
 
         try {

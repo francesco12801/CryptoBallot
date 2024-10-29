@@ -11,27 +11,36 @@ const VotingService = require('./votingService');
 // User routes
 
 router.post('/start-user', async (req, res) => {
-    const { address } = req.body; 
-
+    
     try {
-        const votingService = new VotingService(address); 
+        
+        
+        // Crea un'istanza di ethers.Wallet utilizzando la chiave privata dell'utente
+        const privateKey = '37a2751860b8ef5cf2b02b329de16417db28b1b7a03a2898596996dcf8c0cbeb';
+        const wallet = new ethers.Wallet(privateKey, new ethers.JsonRpcProvider('https://rpc.sepolia.org'));
+
+        // Crea un'istanza di VotingService utilizzando il wallet
+        const votingService = new VotingService(wallet);
+
+
+        // Chiama la funzione startUser()
         const result = await votingService.startUser();
+
         res.json({
             success: true,
             transactionHash: result.transactionHash,
-            blockNumber: result.blockNumber,
+            blockNumber: result.blockNumber
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-
 router.get('/user/:address', async (req, res) => {
-    const { address } = req.params; 
+    const { address } = req.params;
     console.log('Getting user info for address, we are in routes:', address);
     try {
-        const votingService = new VotingService(address);
+        const votingService = new VotingService();
         const userInfo = await votingService.getUserInfo(address);
         res.json(userInfo);
     } catch (error) {
