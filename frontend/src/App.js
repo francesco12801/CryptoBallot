@@ -259,6 +259,8 @@ const Profile = () => {
     if (window.ethereum) {
       try {
 
+        // Richiede l'accesso all'account Ethereum
+
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         console.log("Connesso all'account:", accounts[0]);
 
@@ -290,21 +292,33 @@ const Profile = () => {
         console.log('Wallet connected:', await response.json());
 
 
-        // Crea un'istanza del contratto per poter chiamare la funzione startUser        
+        // Crea un'istanza del contratto per poter chiamare la funzione startUser 
+
         const contract = new ethers.Contract(contractAddress, abi, signer);
-        const tx = await contract.startUser();
-        console.log("Transazione inviata:", tx);
+
+        try {
+          const tx = await contract.startUser();
+          console.log("Transazione inviata:", tx);
+
+        } catch (error) {
+          console.error('Error calling function StartUser:', error.message);
+        }
+
+
         // Call alla funzione successiva sempre tramite contratto
-        const userInfo = await contract.getUserInfo(wallet);
 
-        console.log("User info:", userInfo);
+        try {
+          const userInfo = await contract.getUserInfo(wallet);
+          console.log("User info:", userInfo);
+        } catch (error) {
+          console.error('Error calling function getUserInfo:', error.message);
 
-        
+        }
 
       } catch (error) {
         console.error('Error connecting wallet:', error.message);
       }
-      setShowPopup(false);    
+      setShowPopup(false);
     } else {
       alert('MetaMask is not installed. Please install MetaMask to connect your wallet.');
     }
