@@ -17,29 +17,13 @@ const loginUrl = 'http://localhost:4002';
 const refreshTokenUrl = `${backendUrl}/refresh-token`;
 
 
-
-
-// Dummy data for ballots
-const dummyBallots = [
-  { id: 1, title: 'Presidential Election', expiresIn: '2 hours' },
-  { id: 2, title: 'City Mayor Election', expiresIn: '1 day' },
-  { id: 3, title: 'School Board Election', expiresIn: '3 hours' },
-  { id: 4, title: 'Climate Action Referendum', expiresIn: '12 hours' },
-];
-
 // Homepage component
-const Home = () => {
+const Home = ({ signer }) => {
   const [ballots, setBallots] = useState([]);
+  const [expiredBallots, setExpiredBallots] = useState([]);
   const [userName, setUserName] = useState('Guest');
 
   useEffect(() => {
-    // Dummy data for ballots
-    setBallots([
-      { id: 1, title: 'Presidential Election', expiresIn: '2 hours' },
-      { id: 2, title: 'City Mayor Election', expiresIn: '1 day' },
-      { id: 3, title: 'School Board Election', expiresIn: '3 hours' },
-      { id: 4, title: 'Climate Action Referendum', expiresIn: '12 hours' },
-    ]);
     const fetchUserName = async (token) => {
       try {
         const response = await fetch(`${backendUrl}/username`, {
@@ -60,59 +44,81 @@ const Home = () => {
         setUserName('Guest'); // Fallback to 'Guest' if there's an error
       }
     };
+
+    const fetchAllBallots = async () => {
+      try {
+        if (!signer) {
+          throw new Error('Signer not available');
+        }
+        let ballotManager = new BallotManager(contractAddress, abi, signer);
+        let { ballots, expiredBallots } = await ballotManager.getAllBallots();
+        console.log('Ballots:', ballots);
+        setBallots(ballots);
+        setExpiredBallots(expiredBallots);
+      } catch (error) {
+        console.error('Error fetching ballots:', error);
+      }
+    };
     const token = localStorage.getItem('authToken');
     if (token) {
       fetchUserName(token);
     }
+    fetchAllBallots();
   }, []);
 
   return (
     <div className="container">
       <h1>Welcome to CryptoBallot, {userName}</h1>
-      <h2>Almost expired ballots</h2>
-      <div className="row">
-        {ballots.map((ballot) => (
-          <div className="col-md-4" key={ballot.id}>
-            <div className="card mb-4 shadow-sm">
-              <div className="card-body">
-                <h5 className="card-title">{ballot.title}</h5>
-                <p className="card-text">Ends in {ballot.expiresIn}</p>
-                <button className="btn btn-primary">
-                  <Link to={`/ballot/${ballot.id}`} className="text-white">
-                    Vote Now
-                  </Link>
-                </button>
+      {signer ? (
+        <>
+          <h2>All available ballots</h2>
+          <div className="row">
+          {ballots.map((ballot) => (
+              <div className="col-md-4" key={ballot.id}>
+                <div className="card mb-4 shadow-sm">
+                  <div className="card-body">
+                    <h5 className="card-title">{ballot.title}</h5>
+                    <p className="card-text">Created By {ballot.creatorAddress}</p>
+                    <p className="card-text">Ends in {ballot.expiresIn}</p>
+                    <button className="btn btn-primary">
+                      <Link to={`/ballot/${ballot.id}`} className="text-white">
+                        Vote Now
+                      </Link>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <h2>All available ballots</h2>
-      <div className="row">
-        {ballots.map((ballot) => (
-          <div className="col-md-4" key={ballot.id}>
-            <div className="card mb-4 shadow-sm">
-              <div className="card-body">
-                <h5 className="card-title">{ballot.title}</h5>
-                <p className="card-text">Ends in {ballot.expiresIn}</p>
-                <button className="btn btn-primary">
-                  <Link to={`/ballot/${ballot.id}`} className="text-white">
-                    Vote Now
-                  </Link>
-                </button>
+          <h2>Expired ballots</h2>
+          <div className="row">
+          {expiredBallots.map((ballot) => (
+              <div className="col-md-4" key={ballot.id}>
+                <div className="card mb-4 shadow-sm">
+                  <div className="card-body">
+                    <h5 className="card-title">{ballot.title}</h5>
+                    <p className="card-text">Created By {ballot.creatorAddress}</p>
+                    <button className="btn btn-primary">
+                      <Link to={`/ballot/${ballot.id}`} className="text-white">
+                        See Results
+                      </Link>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
-
+        </>
+      ) : (
+        <p>Please log in and connect your wallet to view and vote on ballots.</p>
+      )}
     </div>
   );
 };
 
 // Login component
-const Login = ({ setIsLoggedIn }) => {
+const Login = ({ setIsLoggedIn, setSigner }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -136,6 +142,10 @@ const Login = ({ setIsLoggedIn }) => {
 
       const data = await response.json();
       const token = data.token;
+
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      setSigner(signer);
 
       // Store token in localStorage
       localStorage.setItem('authToken', token);
@@ -195,7 +205,7 @@ const Login = ({ setIsLoggedIn }) => {
 
 
 // Profile Component
-const Profile = () => {
+const Profile = ({ setSigner }) => {
   const [profile, setProfile] = useState(null);
   const [walletAddress, setWalletAddress] = useState('');
   const [showPopup, setShowPopup] = useState(false);
@@ -270,6 +280,7 @@ const Profile = () => {
 
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
+        setSigner(signer);
         const wallet = await signer.getAddress();
         setWalletAddress(wallet);
 
@@ -579,23 +590,16 @@ const Register = () => {
   );
 }
 // Ballot component
-const Ballot = () => {
+const Ballot = ({ signer }) => {
   const { id } = useParams();
   const [ballot, setBallot] = useState(null);
 
   useEffect(() => {
     // Fetch the ballot data from the backend
     const fetchBallot = async () => {
-      try {
-        const response = await fetch(`${backendUrl}/ballots/${id}`);
-        const data = await response.json();
-        setBallot(data);
-      } catch (error) {
-        console.error('Error fetching ballot:', error);
-        // Fallback to dummy data if there's an error
-        const dummyBallot = dummyBallots.find(ballot => ballot.id === parseInt(id));
-        setBallot(dummyBallot);
-      }
+      let ballotManager = new BallotManager(contractAddress, abi, signer);
+      let ballotData = await ballotManager.getBallot(id);
+      setBallot(ballotData);
     };
 
     fetchBallot();
@@ -608,8 +612,22 @@ const Ballot = () => {
   return (
     <div className="container">
       <h2>{ballot.title}</h2>
-      <p>Expires in {ballot.expiresIn}</p>
-      {/* Add more ballot details here */}
+      {ballot.expiresIn > 0 && <p>Ends in {ballot.expiresIn}</p>}
+      <p>Created by {ballot.creatorAddress}</p>
+      {ballot.type === 'AB' ? (
+        <ul>
+          <li>Option 0: {ballot.option0} - {ballot.votes0}</li>
+          <li>Option 1: {ballot.option1} - {ballot.votes1}</li>
+        </ul>
+      ) : (
+        <ul>
+          {ballot.options.map((option, index) => (
+            <li key={index}>
+              Option {index}: {option} - {ballot.votes[index]} votes
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };
@@ -816,6 +834,7 @@ const rejectFriendRequest = async (requestId) => {
 const App = () => {
   const [userName, setUserName] = useState('Guest'); // Default to 'Guest'
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [signer, setSigner] = useState(null);
 
   // Check for login state from localStorage on component mount
   useEffect(() => {
@@ -921,13 +940,13 @@ const App = () => {
 
       {/* Routes */}
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
+        <Route path="/" element={<Home signer={signer} />} />
+        <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} setSigner={setSigner} />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile" element={<Profile setSigner={setSigner} />} />
         <Route path="/profile/friends" element={<Friends />} />
         <Route path="/profiles/:id" element={<OtherProfile isLoggedIn={isLoggedIn} />} />
-        <Route path="/ballot/:id" element={<Ballot />} />
+        <Route path="/ballot/:id" element={<Ballot signer={signer} />} />
         <Route path="/about" element={<AboutUs />} />
       </Routes>
 
