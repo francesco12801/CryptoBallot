@@ -1,16 +1,22 @@
 import { ethers } from 'ethers';
+import { JsonRpcProvider } from "ethers";
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import jwtDecode from 'jwt-decode';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
-const VotingService = require('./votingService');
+import abi from './abi.json';
+
+
+const contractAddress = '0x70D4772D570f56AA0DdE57dCA4CbBa72928c7107';
 
 const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
 const signupUrl = 'http://localhost:4001';
 const loginUrl = 'http://localhost:4002';
 const refreshTokenUrl = `${backendUrl}/refresh-token`;
+
+
 
 
 // Dummy data for ballots
@@ -252,14 +258,20 @@ const Profile = () => {
   const handleConnectWallet = async () => {
     if (window.ethereum) {
       try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        //const wallet = accounts[0];
-        //setWalletAddress(wallet);
 
-        const provider = new ethers.providers.Web3Provider(window.ethereum, "sepolia");
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        console.log("Connesso all'account:", accounts[0]);
+
+
+        // Crea un provider e un signer che permettono di interagire con la blockchain
+
+
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
         const wallet = await signer.getAddress();
         setWalletAddress(wallet);
+
+        // Invia la richiesta di connessione al backend per associare l'indirizzo del wallet all'account utente
 
         const body = JSON.stringify({ walletAddress: wallet, email: profile.email });
         const response = await fetch(`${backendUrl}/connect-wallet`, {
@@ -277,44 +289,22 @@ const Profile = () => {
 
         console.log('Wallet connected:', await response.json());
 
-        console.log('trying to start user');
-        const votingService = new VotingService(signer);
-        try {
-          const result = await votingService.startUser();
-          console.log('User started:', result);
-        } catch (error) {
-          console.error('Error starting user:', error);
-        }
+
+        // Crea un'istanza del contratto per poter chiamare la funzione startUser        
+        const contract = new ethers.Contract(contractAddress, abi, signer);
+        const tx = await contract.startUser();
+        console.log("Transazione inviata:", tx);
+        // Call alla funzione successiva sempre tramite contratto
+        const userInfo = await contract.getUserInfo(wallet);
+
+        console.log("User info:", userInfo);
+
+        
+
       } catch (error) {
         console.error('Error connecting wallet:', error.message);
       }
-        
-        /* const walletAddress = wallet;
-        
-        const userInfoUrl = `http://localhost:4005/api/voting/user/${walletAddress}`;
-
-        try {
-          // Use fetch with a GET method
-          const response3 = await fetch(userInfoUrl, {
-            method: 'GET', // Change the method to GET
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-
-          // Check if the response is OK
-          if (response3.ok) {
-            console.log('User started:', await response3.json());
-          } else {
-            console.log('User not started:', await response3.json());
-          }
-        } catch (error) {
-          console.error('Error fetching user info:', error);
-        }
-        setShowPopup(false);
-      } catch (error) {
-        console.error('Error connecting wallet:', error.message);
-      } */
+      setShowPopup(false);    
     } else {
       alert('MetaMask is not installed. Please install MetaMask to connect your wallet.');
     }
