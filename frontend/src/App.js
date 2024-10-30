@@ -7,7 +7,7 @@ import jwtDecode from 'jwt-decode';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import abi from './abi.json';
-
+import BallotManager from './ballot-manager.js';
 
 const contractAddress = '0x70D4772D570f56AA0DdE57dCA4CbBa72928c7107';
 
@@ -292,27 +292,29 @@ const Profile = () => {
         console.log('Wallet connected:', await response.json());
 
 
-        // Crea un'istanza del contratto per poter chiamare la funzione startUser 
+        // Crea un'istanza del manager per poter chiamare la funzione startUser  
 
-        const contract = new ethers.Contract(contractAddress, abi, signer);
 
         try {
-          const tx = await contract.startUser();
-          console.log("Transazione inviata:", tx);
+          let ballotManager = new BallotManager(contractAddress, abi, signer);
+          let startUser = await ballotManager.startUser();
+
+          console.log("Transazione inviata:", startUser);
 
         } catch (error) {
           console.error('Error calling function StartUser:', error.message);
         }
 
 
-        // Call alla funzione successiva sempre tramite contratto
-
+        // Call alla funzione successiva sempre tramite manager 
+        // We have to create a new instance of the BallotManager class to call the getUserInfo function
+        // otherwise the try-catch is useless
         try {
-          const userInfo = await contract.getUserInfo(wallet);
+          let ballotManager = new BallotManager(contractAddress, abi, signer);
+          let userInfo = await ballotManager.getUserInfo(wallet);
           console.log("User info:", userInfo);
         } catch (error) {
           console.error('Error calling function getUserInfo:', error.message);
-
         }
 
       } catch (error) {
