@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import { JsonRpcProvider } from "ethers";
+import { BigNumber } from "ethers";
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -66,6 +67,21 @@ const Home = ({ signer }) => {
     fetchAllBallots();
   }, []);
 
+  const formatDuration = (seconds) => {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    let result = '';
+    if (days > 0) result += `${days} day${days > 1 ? 's' : ''} `;
+    if (hours > 0) result += `${hours} hour${hours > 1 ? 's' : ''} `;
+    if (mins > 0) result += `${mins} minute${mins > 1 ? 's' : ''} `;
+    if (secs > 0) result += `${secs} second${secs > 1 ? 's' : ''}`;
+
+    return result.trim();
+  };
+
   return (
     <div className="container">
       <h1>Welcome to CryptoBallot, {userName}</h1>
@@ -79,7 +95,7 @@ const Home = ({ signer }) => {
                   <div className="card-body">
                     <h5 className="card-title">{ballot.title}</h5>
                     <p className="card-text">Created By {ballot.creatorAddress}</p>
-                    <p className="card-text">Ends in {ballot.expiresIn}</p>
+                    <p className="card-text">Ends in {formatDuration(ballot.expiresIn)}</p>
                     <button className="btn btn-primary">
                       <Link to={`/ballot/${ballot.id}`} className="text-white">
                         Vote Now
@@ -609,28 +625,240 @@ const Ballot = ({ signer }) => {
     return <div>Loading...</div>;
   }
 
+  const formatDuration = (seconds) => {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    let result = '';
+    if (days > 0) result += `${days} day${days > 1 ? 's' : ''} `;
+    if (hours > 0) result += `${hours} hour${hours > 1 ? 's' : ''} `;
+    if (mins > 0) result += `${mins} minute${mins > 1 ? 's' : ''} `;
+    if (secs > 0) result += `${secs} second${secs > 1 ? 's' : ''}`;
+
+    return result.trim();
+  };
+
   return (
     <div className="container">
       <h2>{ballot.title}</h2>
-      {ballot.expiresIn > 0 && <p>Ends in {ballot.expiresIn}</p>}
+      {ballot.expiresIn > 0 && <p>Ends in {formatDuration(ballot.expiresIn)}</p>}
       <p>Created by {ballot.creatorAddress}</p>
       {ballot.type === 'AB' ? (
         <ul>
-          <li>Option 0: {ballot.option0} - {ballot.votes0}</li>
-          <li>Option 1: {ballot.option1} - {ballot.votes1}</li>
+          {ballot.option0 && <li>Option 0: {ballot.option0} - {ballot.votes0}</li>}
+          {ballot.option1 && <li>Option 1: {ballot.option1} - {ballot.votes1}</li>}
         </ul>
       ) : (
         <ul>
           {ballot.options.map((option, index) => (
-            <li key={index}>
-              Option {index}: {option} - {ballot.votes[index]} votes
-            </li>
+            option && <li key={index}>Option {index}: {option} - {ballot.votes[index]} votes</li>
           ))}
         </ul>
       )}
     </div>
   );
 };
+
+// New Ballot Component
+const NewBallot = ({ signer }) => {
+  const [title, setTitle] = useState('');
+  const [type, setType] = useState('AB');
+  const [options, setOptions] = useState(['', '']);
+  const [days, setDays] = useState(0);
+  const [hours, setHours] = useState(1);
+  const [minutes, setMinutes] = useState(0);
+  const [error, setError] = useState(null);
+
+  const handleAddOption = () => {
+    if (options.length < 10) {
+      setOptions([...options, '']);
+    }
+  };
+
+  const handleRemoveOption = () => {
+    if (options.length > 3) {
+      setOptions(options.slice(0, -1));
+    }
+  };
+
+  const handleTypeChange = (newType) => {
+    setType(newType);
+    setOptions(newType === 'AB' ? ['', ''] : ['', '', '']);
+  };
+
+  const calculateTotalMinutes = () => {
+    return days * 1440 + hours * 60 + minutes; // 1440 = minutes in a day, 60 = minutes in an hour
+  };
+
+  const handleSubmit = () => {
+    if (type === 'AB' && options.length !== 2) {
+      console.error("Type AB must have exactly 2 options");
+      setError("Type AB must have exactly 2 options");
+      return;
+    }
+    if (type === 'ME' && (options.length < 3 || options.length > 10)) {
+      console.error("Type ME must have between 3 and 10 options");
+      setError("Type ME must have between 3 and 10 options");
+      return;
+    }
+    if (hours < 1) {
+      console.error("Duration must be at least 1 hour");
+      setError("Duration must be at least 1 hour");
+      return;
+    }
+    const durationInMinutes = calculateTotalMinutes();
+    const durationBigNumber = BigNumber.from(durationInMinutes);
+
+    console.log({
+      title,
+      type,
+      options,
+      durationInMinutes
+    });
+
+    // Check first selected type
+    const createBallot = async () => {
+      try {
+        if (type === 'AB') {
+          // Call the function to create the AB ballot
+          let ballotManager = new BallotManager(contractAddress, abi, signer);
+          await ballotManager.createBallotAB(title, options[0], options[1], durationBigNumber);
+          window.location.href = '/';
+        } else {
+          // Call the function to create the ME ballot
+          let ballotManager = new BallotManager(contractAddress, abi, signer);
+          await ballotManager.createBallotME(title, options, durationBigNumber);
+          window.location.href = '/';
+        }
+      } catch (error) {
+        console.error('Error creating ballot:', error);
+      }
+    };
+    
+    createBallot();
+  };
+
+  return (
+    <div className="container mt-4">
+      <div className="card p-4">
+        <h2 className="card-title">Create New Ballot</h2>
+
+        {/* Error Popup */}
+        {error && (
+          <div className="alert alert-danger alert-dismissible fade show" role="alert">
+            {error}
+            <button type="button" className="btn-close" aria-label="Close" onClick={() => setError(null)}></button>
+          </div>
+        )}
+        
+        <div className="mb-3">
+          <label className="form-label">Title:</label>
+          <input
+            type="text"
+            className="form-control"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">Type:</label>
+          <select
+            className="form-select"
+            value={type}
+            onChange={(e) => handleTypeChange(e.target.value)}
+          >
+            <option value="AB">AB</option>
+            <option value="ME">ME</option>
+          </select>
+        </div>
+
+        <div className="mb-3">
+          <h3>Options</h3>
+          {options.map((option, index) => (
+            <input
+              key={index}
+              type="text"
+              className="form-control mb-2"
+              placeholder={`Option ${index + 1}`}
+              value={option}
+              onChange={(e) => {
+                const newOptions = [...options];
+                newOptions[index] = e.target.value;
+                setOptions(newOptions);
+              }}
+            />
+          ))}
+
+          {type === 'ME' && options.length < 10 && (
+            <button
+              type="button"
+              className="btn btn-outline-primary me-2"
+              onClick={handleAddOption}
+            >
+              Add Option
+            </button>
+          )}
+          {type === 'ME' && options.length > 3 && (
+            <button
+              type="button"
+              className="btn btn-outline-danger"
+              onClick={handleRemoveOption}
+            >
+              Remove Option
+            </button>
+          )}
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">Duration (minimum one hour):</label>
+          <div className="d-flex gap-3">
+            <div>
+              <label className="form-label">Days</label>
+              <input
+                type="number"
+                className="form-control"
+                value={days}
+                onChange={(e) => setDays(Number(e.target.value))}
+                min="0"
+                placeholder="Days"
+              />
+            </div>
+            <div>
+              <label className="form-label">Hours</label>
+              <input
+                type="number"
+                className="form-control"
+                value={hours}
+                onChange={(e) => setHours(Number(e.target.value))}
+                min="0"
+                max="23"
+                placeholder="Hours"
+              />
+            </div>
+            <div>
+              <label className="form-label">Minutes</label>
+              <input
+                type="number"
+                className="form-control"
+                value={minutes}
+                onChange={(e) => setMinutes(Number(e.target.value))}
+                min="1"
+                max="59"
+                placeholder="Minutes"
+              />
+            </div>
+          </div>
+        </div>
+
+        <button className="btn btn-primary" onClick={handleSubmit}>Create Ballot</button>
+      </div>
+    </div>
+  );
+};
+
 
 // About Us component
 const AboutUs = () => {
@@ -901,6 +1129,13 @@ const App = () => {
                   Home
                 </Link>
               </li>
+              {isLoggedIn && (
+                <li className="nav-item">
+                  <Link className="nav-link" to="/new-ballot">
+                    New Ballot
+                  </Link>
+                </li>
+              )}
             </ul>
 
             <ul className="navbar-nav ms-auto mb-2 mb-lg-0">
@@ -947,6 +1182,7 @@ const App = () => {
         <Route path="/profile/friends" element={<Friends />} />
         <Route path="/profiles/:id" element={<OtherProfile isLoggedIn={isLoggedIn} />} />
         <Route path="/ballot/:id" element={<Ballot signer={signer} />} />
+        <Route path="/new-ballot" element={<NewBallot signer={signer} />} />
         <Route path="/about" element={<AboutUs />} />
       </Routes>
 

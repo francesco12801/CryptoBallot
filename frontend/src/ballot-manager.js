@@ -26,6 +26,7 @@ class BallotManager {
         while (!error) {
             try {
                 let ballot = await this.contract.getBallotAB(i);
+                
                 if (ballot.endTime.gt(currentTime)) {
                     ballots.push({
                         id: ballot.ballotId.toNumber(),
@@ -52,6 +53,12 @@ class BallotManager {
                     console.log("Not AB ballot, try to get ME")
                     try {
                         let ballot = await this.contract.getBallotME(i);
+                        /* console.log("start time", ballot.startTime.toString());
+                        console.log("end time", ballot.endTime.toString());
+                        let duration = ballot.endTime.sub(ballot.startTime);
+                        console.log("duration", duration.toString());
+                        console.log("current time", currentTime.toString());
+                        console.log("expires in ", ballot.endTime.sub(currentTime).toNumber()); */
                         if (ballot.endTime.gt(currentTime)) {
                             ballots.push({
                                 id: ballot.ballotId.toNumber(),
@@ -59,6 +66,7 @@ class BallotManager {
                                 title: ballot.ballotName,
                                 creatorAddress: ballot.creatorAddress,
                                 endTime: ballot.endTime.toString(),
+                                expiresIn: ballot.endTime.sub(currentTime).toNumber(),
                             });
                         } else {
                             expiredBallots.push({
@@ -67,7 +75,6 @@ class BallotManager {
                                 title: ballot.ballotName,
                                 creatorAddress: ballot.creatorAddress,
                                 endTime: ballot.endTime.toString(),
-                                expiresIn: ballot.endTime.sub(currentTime).toNumber(),
                             });
                         }
                         i++;
@@ -127,6 +134,19 @@ class BallotManager {
         }
     }
 
+    async createBallotAB(title, option0, option1, duration){
+        let tx = await this.contract.createBallotAB(title, option0, option1, duration);
+        await tx.wait();
+        console.log("Transaction completed! Hash:", tx.hash);
+        return tx.hash;
+    }
+
+    async createBallotME(title, options, duration){
+        let tx = await this.contract.createBallotME(title, options, duration);
+        await tx.wait();
+        console.log("Transaction completed! Hash:", tx.hash);
+        return tx.hash;
+    }
 }
 
 export default BallotManager;
