@@ -147,6 +147,20 @@ class BallotManager {
         console.log("Transaction completed! Hash:", tx.hash);
         return tx.hash;
     }
+
+    async voteBallotAB(ballotId, option) {
+        let tx = await this.contract.voteBallotAB(ballotId, option);
+        await tx.wait();
+        console.log("Vote on Ballot AB completed! Transaction hash:", tx.hash);
+        return tx.hash;
+    }
+
+    async voteBallotME(ballotId, optionIndex) {
+        let tx = await this.contract.voteBallotME(ballotId, optionIndex);
+        await tx.wait();
+        console.log("Vote on Ballot ME completed! Transaction hash:", tx.hash);
+        return tx.hash;
+    }
 }
 
 export default BallotManager;

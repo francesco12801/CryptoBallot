@@ -132,6 +132,121 @@ const Home = ({ signer }) => {
     </div>
   );
 };
+const BallotDetail = ({ signer }) => {
+  const { id } = useParams(); // Get ballot ID from route
+  const [ballot, setBallot] = useState(null);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    const fetchBallot = async () => {
+      try {
+        let ballotManager = new BallotManager(contractAddress, abi, signer);
+        let ballotData = await ballotManager.getBallot(id);
+        setBallot(ballotData);
+      } catch (error) {
+        console.error('Error fetching ballot:', error);
+      }
+    };
+    fetchBallot();
+  }, [id, signer]);
+
+  const handleVote = async () => {
+    if (selectedOption == null) {
+      setMessage('Please select an option to vote.');
+      return;
+    }
+  
+    try {
+      let ballotManager = new BallotManager(contractAddress, abi, signer);
+      
+      // Check the ballot type to determine which vote function to call
+      if (ballot.type === 'AB') {
+        await ballotManager.voteBallotAB(id, selectedOption);
+      } else if (ballot.type === 'ME') {
+        await ballotManager.voteBallotME(id, selectedOption);
+      } else {
+        throw new Error('Invalid ballot type');
+      }
+      
+      setMessage('Vote cast successfully!');
+    } catch (error) {
+      console.error('Error voting:', error);
+      setMessage('Failed to cast vote.');
+    }
+  };
+
+  if (!ballot) return <p>Loading ballot details...</p>;
+
+  const formatDuration = (seconds) => {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    let result = '';
+    if (days > 0) result += `${days} day${days > 1 ? 's' : ''} `;
+    if (hours > 0) result += `${hours} hour${hours > 1 ? 's' : ''} `;
+    if (mins > 0) result += `${mins} minute${mins > 1 ? 's' : ''} `;
+    if (secs > 0) result += `${secs} second${secs > 1 ? 's' : ''}`;
+
+    return result.trim();
+  };
+
+  const isExpired = ballot.expiresIn <= 0; // Check if the ballot has expired
+  console.log("################# is expired is   #############" + isExpired);
+  return (
+    <div className="container">
+      <h2>{ballot.title}</h2>
+      <p>Created by {ballot.creatorAddress}</p>
+    
+      {isExpired ? (
+        
+        <div className="container">
+        <p>Ballot ended</p>
+        <h2>{ballot.title}</h2>
+        {ballot.expiresIn > 0 && <p>Ends in {formatDuration(ballot.expiresIn)}</p>}
+        <p>Created by {ballot.creatorAddress}</p>
+        {ballot.type === 'AB' ? (
+          <ul>
+            {ballot.option0 && <li>Option 0: {ballot.option0} - {ballot.votes0}</li>}
+            {ballot.option1 && <li>Option 1: {ballot.option1} - {ballot.votes1}</li>}
+          </ul>
+        ) : (
+          <ul>
+            {ballot.options.map((option, index) => (
+              option && <li key={index}>Option {index}: {option} - {ballot.votes[index]} votes</li>
+            ))}
+          </ul>
+        )}
+      </div>
+      ) : (
+        <div>
+          <p>Ends in {ballot.expiresIn} seconds</p>
+          <h3>Options</h3>
+          {ballot.options.map((option, index) => (
+            <div key={index}>
+              <input
+                type="radio"
+                id={`option-${index}`}
+                name="vote"
+                value={index}
+                onChange={() => setSelectedOption(index)}
+              />
+              <label htmlFor={`option-${index}`}>{option}</label>
+            </div>
+          ))}
+
+          <button onClick={handleVote} className="btn btn-primary mt-3">Submit Vote</button>
+        </div>
+      )}
+
+      {message && <p>{message}</p>}
+    </div>
+  );
+};
+
+
 
 // Login component
 const Login = ({ setIsLoggedIn, setSigner }) => {
@@ -859,6 +974,82 @@ const NewBallot = ({ signer }) => {
   );
 };
 
+const VoteBallot = ({ signer, contractAddress, abi }) => {
+  const [ballotId, setBallotId] = useState('');
+  const [type, setType] = useState('AB');
+  const [option, setOption] = useState(0); // Default selected option
+  const [error, setError] = useState(null);
+
+  const handleVote = async () => {
+    try {
+      const ballotManager = new BallotManager(contractAddress, abi, signer);
+      if (type === 'AB') {
+        await ballotManager.voteBallotAB(BigNumber.from(ballotId), BigNumber.from(option));
+      } else if (type === 'ME') {
+        await ballotManager.voteBallotME(BigNumber.from(ballotId), BigNumber.from(option));
+      }
+      alert('Vote cast successfully!');
+    } catch (err) {
+      console.error('Error casting vote:', err);
+      setError('Failed to cast vote. Please check the ballot ID and option.');
+    }
+  };
+
+  return (
+    <div className="container mt-4">
+      <div className="card p-4">
+        <h2 className="card-title">Vote on a Ballot</h2>
+
+        {/* Error Popup */}
+        {error && (
+          <div className="alert alert-danger alert-dismissible fade show" role="alert">
+            {error}
+            <button type="button" className="btn-close" aria-label="Close" onClick={() => setError(null)}></button>
+          </div>
+        )}
+
+        <div className="mb-3">
+          <label className="form-label">Ballot ID:</label>
+          <input
+            type="text"
+            className="form-control"
+            value={ballotId}
+            onChange={(e) => setBallotId(e.target.value)}
+          />
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">Ballot Type:</label>
+          <select
+            className="form-select"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+          >
+            <option value="AB">AB</option>
+            <option value="ME">ME</option>
+          </select>
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">Option:</label>
+          <input
+            type="number"
+            className="form-control"
+            min="0"
+            value={option}
+            onChange={(e) => setOption(Number(e.target.value))}
+          />
+          <small className="form-text text-muted">Enter the option index you want to vote for.</small>
+        </div>
+
+        <button className="btn btn-primary" onClick={handleVote}>
+          Cast Vote
+        </button>
+      </div>
+    </div>
+  );
+};
+
 
 // About Us component
 const AboutUs = () => {
@@ -1181,7 +1372,7 @@ const App = () => {
         <Route path="/profile" element={<Profile setSigner={setSigner} />} />
         <Route path="/profile/friends" element={<Friends />} />
         <Route path="/profiles/:id" element={<OtherProfile isLoggedIn={isLoggedIn} />} />
-        <Route path="/ballot/:id" element={<Ballot signer={signer} />} />
+        <Route path="/ballot/:id" element={<BallotDetail signer={signer} />} />
         <Route path="/new-ballot" element={<NewBallot signer={signer} />} />
         <Route path="/about" element={<AboutUs />} />
       </Routes>
