@@ -10,7 +10,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import abi from './abi.json';
 import BallotManager from './ballot-manager.js';
 
-const contractAddress = '0x26f563Fa3413e6206B16591f2fD6161f5D44c81F';
+const contractAddress = '0xD16945Cf0A1Ff2d9cb70fFa752Da5ee12d478ab2';
 
 const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
 const signupUrl = 'http://localhost:4001';
