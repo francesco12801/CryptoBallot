@@ -10,7 +10,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import abi from './abi.json';
 import BallotManager from './ballot-manager.js';
 
-const contractAddress = '0x70D4772D570f56AA0DdE57dCA4CbBa72928c7107';
+const contractAddress = '0x26f563Fa3413e6206B16591f2fD6161f5D44c81F';
 
 const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
 const signupUrl = 'http://localhost:4001';
@@ -201,47 +201,47 @@ const BallotDetail = ({ signer }) => {
       <p>Created by {ballot.creatorAddress}</p>
     
       {isExpired ? (
-        
         <div className="container">
-        <p>Ballot ended</p>
-        <h2>{ballot.title}</h2>
-        {ballot.expiresIn > 0 && <p>Ends in {formatDuration(ballot.expiresIn)}</p>}
-        <p>Created by {ballot.creatorAddress}</p>
-        {ballot.type === 'AB' ? (
-          <ul>
-            {ballot.option0 && <li>Option 0: {ballot.option0} - {ballot.votes0}</li>}
-            {ballot.option1 && <li>Option 1: {ballot.option1} - {ballot.votes1}</li>}
-          </ul>
-        ) : (
-          <ul>
-            {ballot.options.map((option, index) => (
-              option && <li key={index}>Option {index}: {option} - {ballot.votes[index]} votes</li>
-            ))}
-          </ul>
-        )}
-      </div>
+          <p>Ballot ended</p>
+          <h2>{ballot.title}</h2>
+          <p>Created by {ballot.creatorAddress}</p>
+          {ballot.type === 'AB' ? (
+            <ul>
+              {ballot.option0 && <li>Option 0: {ballot.option0} - {ballot.votes0}</li>}
+              {ballot.option1 && <li>Option 1: {ballot.option1} - {ballot.votes1}</li>}
+            </ul>
+          ) : (
+            <ul>
+              {ballot.options.map((option, index) => (
+                option && <li key={index}>Option {index}: {option} - {ballot.votes[index]} votes</li>
+              ))}
+            </ul>
+          )}
+        </div>
       ) : (
         <div>
-          <p>Ends in {ballot.expiresIn} seconds</p>
+          {ballot.expiresIn > 0 && <p>Ends in {formatDuration(ballot.expiresIn)}</p>}
           <h3>Options</h3>
           {ballot.options.map((option, index) => (
-            <div key={index}>
-              <input
-                type="radio"
-                id={`option-${index}`}
-                name="vote"
-                value={index}
-                onChange={() => setSelectedOption(index)}
-              />
-              <label htmlFor={`option-${index}`}>{option}</label>
-            </div>
+            option && (
+              <div key={index}>
+                <input
+                  type="radio"
+                  id={`option-${index}`}
+                  name="vote"
+                  value={index}
+                  onChange={() => setSelectedOption(index)}
+                />
+                <label htmlFor={`option-${index}`}>{option}</label>
+              </div>
+            )
           ))}
 
           <button onClick={handleVote} className="btn btn-primary mt-3">Submit Vote</button>
         </div>
       )}
 
-      {message && <p>{message}</p>}
+      {message && <div className="alert alert-info mt-3">{message}</div>}
     </div>
   );
 };
@@ -340,6 +340,8 @@ const Profile = ({ setSigner }) => {
   const [profile, setProfile] = useState(null);
   const [walletAddress, setWalletAddress] = useState('');
   const [showPopup, setShowPopup] = useState(false);
+  const [info, setInfo] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -438,13 +440,16 @@ const Profile = ({ setSigner }) => {
 
 
         try {
+          setInfo('Connecting wallet...');
           let ballotManager = new BallotManager(contractAddress, abi, signer);
           let startUser = await ballotManager.startUser();
 
           console.log("Transazione inviata:", startUser);
 
+          setInfo('Wallet Connected successfully, you can now return to the homepage to cast votes');
         } catch (error) {
           console.error('Error calling function StartUser:', error.message);
+          setError('Error connecting wallet');
         }
 
 
@@ -509,6 +514,8 @@ const Profile = ({ setSigner }) => {
           </div>
         </div>
       )}
+      {info && <div className="alert alert-success">{info}</div>}
+      {error && <div className="alert alert-danger">{error}</div>}
     </div>
   );
 };
@@ -785,6 +792,8 @@ const NewBallot = ({ signer }) => {
   const [hours, setHours] = useState(1);
   const [minutes, setMinutes] = useState(0);
   const [error, setError] = useState(null);
+  const [info, setInfo] = useState(null);
+  const navigate = useNavigate();
 
   const handleAddOption = () => {
     if (options.length < 10) {
@@ -808,6 +817,7 @@ const NewBallot = ({ signer }) => {
   };
 
   const handleSubmit = () => {
+    const durationInMinutes = calculateTotalMinutes();
     if (type === 'AB' && options.length !== 2) {
       console.error("Type AB must have exactly 2 options");
       setError("Type AB must have exactly 2 options");
@@ -818,12 +828,12 @@ const NewBallot = ({ signer }) => {
       setError("Type ME must have between 3 and 10 options");
       return;
     }
-    if (hours < 1) {
+    if (durationInMinutes < 60) {
       console.error("Duration must be at least 1 hour");
       setError("Duration must be at least 1 hour");
       return;
     }
-    const durationInMinutes = calculateTotalMinutes();
+    
     const durationBigNumber = BigNumber.from(durationInMinutes);
 
     console.log({
@@ -836,16 +846,17 @@ const NewBallot = ({ signer }) => {
     // Check first selected type
     const createBallot = async () => {
       try {
+        setInfo('Creating ballot...');
         if (type === 'AB') {
           // Call the function to create the AB ballot
           let ballotManager = new BallotManager(contractAddress, abi, signer);
           await ballotManager.createBallotAB(title, options[0], options[1], durationBigNumber);
-          window.location.href = '/';
+          navigate('/');
         } else {
           // Call the function to create the ME ballot
           let ballotManager = new BallotManager(contractAddress, abi, signer);
           await ballotManager.createBallotME(title, options, durationBigNumber);
-          window.location.href = '/';
+          navigate('/');
         }
       } catch (error) {
         console.error('Error creating ballot:', error);
@@ -865,6 +876,14 @@ const NewBallot = ({ signer }) => {
           <div className="alert alert-danger alert-dismissible fade show" role="alert">
             {error}
             <button type="button" className="btn-close" aria-label="Close" onClick={() => setError(null)}></button>
+          </div>
+        )}
+
+        {/* Info Popup */}
+        {info && (
+          <div className="alert alert-info alert-dismissible fade show" role="alert">
+            {info}
+            <button type="button" className="btn-close" aria-label="Close" onClick={() => setInfo(null)}></button>
           </div>
         )}
         
