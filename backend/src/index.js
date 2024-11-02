@@ -80,9 +80,121 @@ pool.query(
   }
 );
 
+pool.query(
+  `CREATE TABLE IF NOT EXISTS "Bookmarks" (
+    ID SERIAL PRIMARY KEY,
+    USER_ID INT REFERENCES "User"(ID) ON DELETE CASCADE,
+    BALLOT_ID INT,
+    CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );`,
+  (err, res) => {
+    if (err) {
+      console.error('Error creating the bookmarks table:', err);
+    } else {
+      console.log('Bookmarks table created successfully');
+    }
+  }
+);
+
+
 app.use(cors({
   origin: 'http://localhost:3000',
 }));
+
+app.get('/bookmarks', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+
+    const bookmarks = await pool.query(
+      'SELECT ballot_id FROM "Bookmarks" WHERE USER_ID = $1',
+      [userId]
+    );
+
+    res.status(200).json(bookmarks.rows);
+  } catch (error) {
+    console.error('Error fetching bookmarks:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/bookmarks/add', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  const { ballotId } = req.body;
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+
+    await pool.query(
+      'INSERT INTO "Bookmarks" (USER_ID, BALLOT_ID) VALUES ($1, $2)',
+      [userId, ballotId]
+    );
+
+    res.status(200).json({ message: 'Ballot bookmarked successfully' });
+  } catch (error) {
+    console.error('Error adding bookmark:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/bookmarks/remove', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  const { ballotId } = req.body;
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+
+    await pool.query(
+      'DELETE FROM "Bookmarks" WHERE USER_ID = $1 AND BALLOT_ID = $2',
+      [userId, ballotId]
+    );
+
+    res.status(200).json({ message: 'Ballot removed from bookmarks' });
+  } catch (error) {
+    console.error('Error removing bookmark:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/check-bookmark', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  const { ballotId } = req.body;
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.id;
+
+    const bookmark = await pool.query(
+      'SELECT * FROM "Bookmarks" WHERE USER_ID = $1 AND BALLOT_ID = $2',
+      [userId, ballotId]
+    );
+
+    if (bookmark.rows.length === 0) {
+      return res.status(200).json({ bookmarked: false });
+    }
+
+    res.status(200).json({ bookmarked: true });
+  } catch (error) {
+    console.error('Error checking bookmark:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Route to get your friends
 app.get('/friends', async (req, res) => {

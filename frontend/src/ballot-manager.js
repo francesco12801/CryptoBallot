@@ -134,6 +134,25 @@ class BallotManager {
         }
     }
 
+    async getBallots(bookmarks){
+        let ballots = [];
+        let expiredBallots = [];
+        for (let bookmark of bookmarks) {
+            try {
+                let ballot = await this.getBallot(bookmark);
+                if (ballot.expiresIn > 0) {
+                    console.log(ballot);
+                    ballots.push(ballot);
+                } else {
+                    expiredBallots.push(ballot);
+                }
+            } catch (err) {
+                console.error(`Error fetching ballot with id ${bookmark}:`, err);
+            }
+        }
+        return {ballots, expiredBallots};
+    }
+
     async createBallotAB(title, option0, option1, duration){
         let tx = await this.contract.createBallotAB(title, option0, option1, duration);
         await tx.wait();

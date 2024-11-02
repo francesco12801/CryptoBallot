@@ -137,6 +137,7 @@ const BallotDetail = ({ signer }) => {
   const [ballot, setBallot] = useState(null);
   const [selectedOption, setSelectedOption] = useState(null);
   const [message, setMessage] = useState('');
+  const [bookmarked, setBookmarked] = useState(false);
 
   useEffect(() => {
     const fetchBallot = async () => {
@@ -148,7 +149,29 @@ const BallotDetail = ({ signer }) => {
         console.error('Error fetching ballot:', error);
       }
     };
+
+    const checkBookmark = async () => {
+      console.log("Checking bookmark");
+      try {
+        const response = await fetch(`${backendUrl}/check-bookmark`, {
+          method: 'POST',
+          headers: {
+        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+        'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ballotId: id }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Bookmarked", data.bookmarked);
+          setBookmarked(data.bookmarked);
+        }
+      } catch (error) {
+        console.error('Error checking bookmark:', error);
+      }
+    }
     fetchBallot();
+    checkBookmark();
   }, [id, signer]);
 
   const handleVote = async () => {
@@ -173,6 +196,27 @@ const BallotDetail = ({ signer }) => {
     } catch (error) {
       console.error('Error voting:', error);
       setMessage('Failed to cast vote.');
+    }
+  };
+
+  const handleBookmark = async () => {
+    try {
+      const response = await fetch(`${backendUrl}/${bookmarked ? 'bookmarks/remove' : 'bookmarks/add'}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ballotId: id }),
+      });
+      if (response.ok) {
+        setBookmarked(!bookmarked);
+        console.log(response.json());
+      } else {
+        console.error('Error updating bookmark status');
+      }
+    } catch (error) {
+      console.error('Error updating bookmark status:', error);
     }
   };
 
@@ -202,8 +246,8 @@ const BallotDetail = ({ signer }) => {
     
       {isExpired ? (
         <div className="container">
-          <p>Ballot ended</p>
           <h2>{ballot.title}</h2>
+          <p>Ballot ended</p>
           <p>Created by {ballot.creatorAddress}</p>
           {ballot.type === 'AB' ? (
             <ul>
@@ -220,6 +264,7 @@ const BallotDetail = ({ signer }) => {
         </div>
       ) : (
         <div>
+          <h2>{ballot.title}</h2>
           {ballot.expiresIn > 0 && <p>Ends in {formatDuration(ballot.expiresIn)}</p>}
           <h3>Options</h3>
           {ballot.options.map((option, index) => (
@@ -240,6 +285,13 @@ const BallotDetail = ({ signer }) => {
           <button onClick={handleVote} className="btn btn-primary mt-3">Submit Vote</button>
         </div>
       )}
+
+      <button 
+        onClick={handleBookmark} 
+        className={`btn ${bookmarked ? 'btn-danger' : 'btn-secondary'} mt-3`}
+      >
+        {bookmarked ? 'Remove from Bookmarks' : 'Add to Bookmarks'}
+      </button>
 
       {message && <div className="alert alert-info mt-3">{message}</div>}
     </div>
@@ -1268,6 +1320,115 @@ const rejectFriendRequest = async (requestId) => {
   }
 };
 
+// Bookmarks component
+const Bookmarks = ({signer}) => {
+  const [bookmarks, setBookmarks] = useState([]);
+  const [ballots, setBallots] = useState([]);
+  const [expiredBallots, setExpiredBallots] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchBookmarks = async () => {
+      try {
+        const response = await fetch(`${backendUrl}/bookmarks`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+        const data = await response.json();
+        console.log('Bookmarks:', data);
+        const bookmarkIds = data.map(bookmark => bookmark.ballot_id);
+        setBookmarks(bookmarkIds);
+      }
+      catch (error) {
+        setError('Error fetching bookmarks');
+        console.error('Error fetching bookmarks:', error);
+      }
+    }
+    fetchBookmarks();
+  }, []);
+
+  useEffect(() => {
+    const fetchBallots = async () => {
+      try {
+        if (!signer) {
+          throw new Error('Wallet not connected');
+        }
+        let ballotManager = new BallotManager(contractAddress, abi, signer);
+        let { ballots, expiredBallots } = await ballotManager.getBallots(bookmarks);
+        setBallots(ballots);
+        setExpiredBallots(expiredBallots);
+      } catch (error) {
+        setError('Error fetching ballots:', error);
+        console.error('Error fetching ballots:', error);
+      }
+    };
+    fetchBallots();
+  }, [bookmarks]);
+
+  const formatDuration = (seconds) => {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    let result = '';
+    if (days > 0) result += `${days} day${days > 1 ? 's' : ''} `;
+    if (hours > 0) result += `${hours} hour${hours > 1 ? 's' : ''} `;
+    if (mins > 0) result += `${mins} minute${mins > 1 ? 's' : ''} `;
+    if (secs > 0) result += `${secs} second${secs > 1 ? 's' : ''}`;
+
+    return result.trim();
+  };
+
+  if (error) {
+    return <div className="alert alert-danger">{error}</div>;
+  }
+  return (
+    <div className="container">
+      {error && <div className="alert alert-danger">{error}</div>}
+      <h2>Active Bookmarked Ballots</h2>
+      <div className="row">
+      {ballots.map((ballot) => (
+          <div className="col-md-4" key={ballot.id}>
+            <div className="card mb-4 shadow-sm">
+              <div className="card-body">
+                <h5 className="card-title">{ballot.title}</h5>
+                <p className="card-text">Created By {ballot.creatorAddress}</p>
+                <p className="card-text">Ends in {formatDuration(ballot.expiresIn)}</p>
+                <button className="btn btn-primary">
+                  <Link to={`/ballot/${ballot.id}`} className="text-white">
+                    Vote Now
+                  </Link>
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <h2>Expired Bookmarked Ballots</h2>
+      <div className="row">
+      {expiredBallots.map((ballot) => (
+          <div className="col-md-4" key={ballot.id}>
+            <div className="card mb-4 shadow-sm">
+              <div className="card-body">
+                <h5 className="card-title">{ballot.title}</h5>
+                <p className="card-text">Created By {ballot.creatorAddress}</p>
+                <button className="btn btn-primary">
+                  <Link to={`/ballot/${ballot.id}`} className="text-white">
+                    See Results
+                  </Link>
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 //App component
 const App = () => {
   const [userName, setUserName] = useState('Guest'); // Default to 'Guest'
@@ -1371,6 +1532,11 @@ const App = () => {
                     </Link>
                   </li>
                   <li className="nav-item">
+                    <Link className="nav-link" to="/bookmarks">
+                      Bookmarks
+                    </Link>
+                  </li>
+                  <li className="nav-item">
                     <button className="nav-link btn" onClick={handleLogout}>
                       Logout
                     </button>
@@ -1393,6 +1559,7 @@ const App = () => {
         <Route path="/profiles/:id" element={<OtherProfile isLoggedIn={isLoggedIn} />} />
         <Route path="/ballot/:id" element={<BallotDetail signer={signer} />} />
         <Route path="/new-ballot" element={<NewBallot signer={signer} />} />
+        <Route path="/bookmarks" element={<Bookmarks signer={signer} />} />
         <Route path="/about" element={<AboutUs />} />
       </Routes>
 
@@ -1414,9 +1581,6 @@ const App = () => {
               <ul className="list-unstyled">
                 <li>
                   <Link to="/" className="text-dark">Home</Link>
-                </li>
-                <li>
-                  <Link to="/contact" className="text-dark">Contact</Link>
                 </li>
                 <li>
                   <Link to="/about" className="text-dark">About Us</Link>
