@@ -1,0 +1,57 @@
+168c6c8,giu,2024-11-02 17:53:20,added smart contracts
+1554c4e,Marcoxmas,2024-11-02 17:34:22,new contract
+ced8f9e,Marcoxmas,2024-11-02 16:54:23,added bookmarking support
+4dc466d,Marcoxmas,2024-11-02 09:58:03,contract changed + info boxes for feedback
+01b09a2,davide.fortunato,2024-10-31 16:48:42,Vote cast function implementation
+3e826c1,Marcoxmas,2024-10-30 22:34:26,ballot creation
+a614c2d,Marcoxmas,2024-10-30 18:09:22,homepage retrieve all ballots + simple ballot page
+04bfa23,francesco12801,2024-10-30 02:15:36,Moduling
+dbe01bc,francesco12801,2024-10-30 01:54:43,Comments
+b4870ba,francesco12801,2024-10-30 01:51:13,Working services for ballot
+7abc457,Marcoxmas,2024-10-30 00:05:22,trying stuff
+6681897,francesco12801,2024-10-29 17:14:32,Adding entrypoint
+4eee70f,francesco12801,2024-10-29 15:59:01,fixes
+a084585,francesco12801,2024-10-29 15:46:07,fixes
+9f2ed35,francesco12801,2024-10-29 00:20:31,Layer for ballotting
+2e461b3,francesco12801,2024-10-28 23:27:57,crypto-ballot manager
+f5a1b66,Marcoxmas,2024-10-21 12:05:52,feedback friend request + already friends check
+c294c84,Marcoxmas,2024-10-16 12:21:51,added route for public profile + friends requests fully implemented
+62cc934,Marcoxmas,2024-10-15 19:51:49,conditional buttons navbar
+eb4372d,davide.fortunato,2024-10-15 10:26:31,Friends management
+4970fac,Marcoxmas,2024-10-11 18:57:04,Merge fixes
+a83f7b8,Marco Natale,2024-10-11 18:32:37,Merge pull request #2 from francesco12801/Fra
+41455b3,Marco Natale,2024-10-11 18:32:17,Merge branch 'main' into Fra
+ed0af87,Marcoxmas,2024-10-09 11:55:50,init file for database
+ad5ffb4,francesco12801,2024-10-08 17:14:26,handling logout
+9fad3f9,francesco12801,2024-10-08 17:12:18,final version
+8424e32,francesco12801,2024-10-08 16:56:49,Fixes
+0336d15,francesco12801,2024-10-08 12:57:11,Fixes
+bfe6a1f,francesco12801,2024-10-08 12:33:08,Profile fixes
+603bb93,francesco12801,2024-10-08 12:24:43,Adding WalletConnect service
+0b921cc,Marcoxmas,2024-10-07 14:33:48,fetch user name
+b76b0f7,Marcoxmas,2024-10-07 13:00:47,frontend fixes
+f3c8ce7,Marcoxmas,2024-10-07 12:35:04,fixes
+1865331,Marco Natale,2024-10-07 12:32:08,Merge pull request #1 from francesco12801/backend
+8f33700,Marco Natale,2024-10-07 12:31:50,Merge branch 'main' into backend
+9dd70ec,francesco12801,2024-10-07 09:50:22,SignUp and LogIn container added
+b7860a4,Marcoxmas,2024-10-04 16:26:37,frontend improvements
+826ea2b,Marcoxmas,2024-10-04 15:11:10,frontend improvements
+c09960a,Marcoxmas,2024-10-04 13:09:36,frontend improvements
+ff86af8,Marcoxmas,2024-10-01 18:37:45,fixed routing issue
+d6e3308,Francesco Tinessa,2024-10-01 16:35:33,README.md for .env
+39bd125,Francesco Tinessa,2024-10-01 16:34:44,Update README.md
+a28df34,francesco12801,2024-10-01 16:33:24,README instruction for .env file
+53a2a01,francesco12801,2024-10-01 16:21:30,creation .env file and creation of DB
+86a1432,Marcoxmas,2024-10-01 15:48:36,gitignore modified
+92fe79b,Marcoxmas,2024-10-01 15:48:06,documentation
+5011953,francesco12801,2024-10-01 15:47:24,Pratical structure
+a2cc0ab,francesco12801,2024-10-01 15:38:40,Database step by step creation
+f7dc74c,Marcoxmas,2024-10-01 13:16:12,fix db
+cd66500,Marcoxmas,2024-10-01 12:59:32,backend + db containers
+1bf8651,Marcoxmas,2024-09-30 23:01:14,Merge branch 'main' of github.com:francesco12801/CryptoBallot into main
+6fd337f,Marcoxmas,2024-09-30 23:00:41,simple frontendd container
+e393336,francesco12801,2024-09-29 17:44:26,changing routes
+e4540d6,francesco12801,2024-09-29 16:43:05,project creation
+bae364e,Marcoxmas,2024-09-27 16:40:08,ideas
+43bea21,Marcoxmas,2024-09-27 16:38:47,ideas
+7bf3975,Francesco Tinessa,2024-09-27 15:37:04,Initial commit
